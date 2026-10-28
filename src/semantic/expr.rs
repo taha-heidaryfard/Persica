@@ -186,6 +186,23 @@ impl Analyzer {
                             format!("undefined type '{type_name}'"),
                         ))
                     }
+                    Type::Module => {
+                        if let ExprKind::Identifier(var_name) = &object.kind
+                            && let Some(mod_sym) = self.modules.get(var_name)
+                        {
+                            if let Some(var_sym) = mod_sym.variables.get(name) {
+                                return Ok(var_sym.variable_type.clone());
+                            }
+                            return Err(error_expr(
+                                expression,
+                                format!("module '{var_name}' has no variable '{name}'"),
+                            ));
+                        }
+                        Err(error_expr(
+                            expression,
+                            format!("cannot access property '{name}' on module"),
+                        ))
+                    }
                     actual => Err(error_expr(
                         object,
                         format!("cannot access property '{name}' on type '{actual}'"),
@@ -289,6 +306,77 @@ impl Analyzer {
                         }
                         Ok(signature.return_type.clone())
                     }
+                    Type::Module => {
+                        if let ExprKind::Identifier(var_name) = &object.kind
+                            && let Some(mod_sym) = self.modules.get(var_name).cloned()
+                        {
+                            if let Some(signature) = mod_sym.functions.get(method) {
+                                if signature.parameters.len() != arguments.len() {
+                                    return Err(error_expr(
+                                        expression,
+                                        format!(
+                                            "function '{method}' expects {} arguments, found {}",
+                                            signature.parameters.len(),
+                                            arguments.len()
+                                        ),
+                                    ));
+                                }
+                                for (argument, expected) in
+                                    arguments.iter().zip(&signature.parameters)
+                                {
+                                    let actual = self.expression_type_as(argument, expected)?;
+                                    self.require_type(expected, &actual, argument)?;
+                                }
+                                return Ok(signature.return_type.clone());
+                            }
+                            if let Some(s_info) = mod_sym.structs.get(method) {
+                                if s_info.fields.len() != arguments.len() {
+                                    return Err(error_expr(
+                                        expression,
+                                        format!(
+                                            "constructor '{method}' expects {} arguments, found {}",
+                                            s_info.fields.len(),
+                                            arguments.len()
+                                        ),
+                                    ));
+                                }
+                                for (argument, (_, expected)) in
+                                    arguments.iter().zip(&s_info.fields)
+                                {
+                                    let actual = self.expression_type_as(argument, expected)?;
+                                    self.require_type(expected, &actual, argument)?;
+                                }
+                                return Ok(Type::Custom(method.clone()));
+                            }
+                            if let Some(c_info) = mod_sym.classes.get(method) {
+                                if c_info.fields.len() != arguments.len() {
+                                    return Err(error_expr(
+                                        expression,
+                                        format!(
+                                            "constructor '{method}' expects {} arguments, found {}",
+                                            c_info.fields.len(),
+                                            arguments.len()
+                                        ),
+                                    ));
+                                }
+                                for (argument, (_, expected)) in
+                                    arguments.iter().zip(&c_info.fields)
+                                {
+                                    let actual = self.expression_type_as(argument, expected)?;
+                                    self.require_type(expected, &actual, argument)?;
+                                }
+                                return Ok(Type::Custom(method.clone()));
+                            }
+                            return Err(error_expr(
+                                expression,
+                                format!("module '{var_name}' has no function or class '{method}'"),
+                            ));
+                        }
+                        Err(error_expr(
+                            expression,
+                            format!("cannot call '{method}' on module"),
+                        ))
+                    }
                     actual => Err(error_expr(
                         object,
                         format!("cannot call method '{method}' on type '{actual}'"),
@@ -391,13 +479,15 @@ impl Analyzer {
         }
     }
 
-    pub(super) fn is_assignable(expected: &Type, actual: &Type) -> bool {
-        if expected == actual || expected == &Type::Any || actual == &Type::Any {
+    pub(super) fn is_assignable(&self, expected: &Type, actual: &Type) -> bool {
+        let exp = self.canonical_type(expected);
+        let act = self.canonical_type(actual);
+        if exp == act || exp == Type::Any || act == Type::Any {
             return true;
         }
-        match (expected, actual) {
+        match (&exp, &act) {
             (Type::Array(exp_elem), Type::Array(act_elem)) => {
-                Self::is_assignable(exp_elem, act_elem)
+                self.is_assignable(exp_elem, act_elem)
             }
             (
                 Type::Map {
@@ -408,7 +498,7 @@ impl Analyzer {
                     key: act_k,
                     value: act_v,
                 },
-            ) => Self::is_assignable(exp_k, act_k) && Self::is_assignable(exp_v, act_v),
+            ) => self.is_assignable(exp_k, act_k) && self.is_assignable(exp_v, act_v),
             _ => false,
         }
     }
@@ -428,7 +518,7 @@ impl Analyzer {
         actual: &Type,
         expression: &Expr,
     ) -> Result<(), Diagnostic> {
-        if Self::is_assignable(expected, actual) {
+        if self.is_assignable(expected, actual) {
             Ok(())
         } else {
             Err(error_expr(

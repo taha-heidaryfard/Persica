@@ -1,0 +1,17 @@
+// Math utility module for Persica v0.10.0
+final float PI = 3.14159265;
+
+def int add(int a, int b) {
+    return a + b;
+}
+
+def int mul(int a, int b) {
+    return a * b;
+}
+
+def int factorial(int n) {
+    if n <= 1 {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}

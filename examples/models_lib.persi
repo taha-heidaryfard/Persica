@@ -1,0 +1,18 @@
+// Models module for Persica v0.10.0
+struct Vector2D {
+    float x;
+    float y;
+}
+
+class Account {
+    string owner;
+    float balance;
+
+    def deposit(float amount) {
+        this.balance += amount;
+    }
+
+    def display() {
+        print("Account owner: " + this.owner + ", Balance: " + to_string(this.balance));
+    }
+}

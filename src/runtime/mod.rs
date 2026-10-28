@@ -16,29 +16,38 @@ use std::{
 };
 use value::ClassInstance;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct Binding {
     pub(super) variable_type: Type,
     pub(super) is_final: bool,
     pub(super) value: Value,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct Function {
     pub(super) return_type: Type,
     pub(super) parameters: Vec<Parameter>,
     pub(super) body: Vec<Stmt>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct StructDef {
     pub(super) fields: Vec<FieldDef>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct ClassDef {
     pub(super) fields: Vec<FieldDef>,
     pub(super) methods: HashMap<String, MethodDef>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModuleInstance {
+    pub name: String,
+    pub(super) functions: HashMap<String, Function>,
+    pub(super) structs: HashMap<String, StructDef>,
+    pub(super) classes: HashMap<String, ClassDef>,
+    pub(super) globals: HashMap<String, Binding>,
 }
 
 pub(super) enum Flow {
@@ -62,6 +71,8 @@ pub struct Interpreter {
     pub(super) functions: HashMap<String, Function>,
     pub(super) structs: HashMap<String, StructDef>,
     pub(super) classes: HashMap<String, ClassDef>,
+    pub(super) loaded_modules: HashMap<String, Rc<RefCell<ModuleInstance>>>,
+    pub(super) type_aliases: HashMap<String, String>,
     pub(super) current_instance: Option<Rc<RefCell<ClassInstance>>>,
     pub(super) output: String,
     pub(super) print_calls: Vec<String>,
@@ -132,6 +143,9 @@ impl Interpreter {
                         },
                     );
                 }
+                StmtKind::Import { module, items } => {
+                    self.execute_import(module, items, statement)?;
+                }
                 StmtKind::StructDeclaration { name, fields } => {
                     self.structs.insert(
                         name.clone(),
@@ -166,6 +180,7 @@ impl Interpreter {
                 StmtKind::FunctionDeclaration { .. }
                     | StmtKind::StructDeclaration { .. }
                     | StmtKind::ClassDeclaration { .. }
+                    | StmtKind::Import { .. }
             ) {
                 match self.execute(statement)? {
                     Flow::Normal => {}
@@ -179,6 +194,123 @@ impl Interpreter {
             }
         }
         Ok(())
+    }
+
+    fn execute_import(
+        &mut self,
+        module_specifier: &str,
+        items: &crate::ast::ImportItems,
+        statement: &Stmt,
+    ) -> Result<(), Diagnostic> {
+        let module_instance = if let Some(m) = self.loaded_modules.get(module_specifier).cloned() {
+            m
+        } else {
+            let (key, source) =
+                crate::module::load_module_source(module_specifier, None, statement.span)?;
+            let module_ast = crate::module::parse_module(&source, statement.span)?;
+            let mut sub_interpreter = Interpreter::new();
+            sub_interpreter.loaded_modules = self.loaded_modules.clone();
+            sub_interpreter.execute_program(&module_ast)?;
+            self.loaded_modules = sub_interpreter.loaded_modules;
+            let mod_inst = Rc::new(RefCell::new(ModuleInstance {
+                name: module_specifier.to_string(),
+                functions: sub_interpreter.functions,
+                structs: sub_interpreter.structs,
+                classes: sub_interpreter.classes,
+                globals: sub_interpreter
+                    .scopes
+                    .into_iter()
+                    .next()
+                    .unwrap_or_default(),
+            }));
+            self.loaded_modules
+                .insert(module_specifier.to_string(), Rc::clone(&mod_inst));
+            self.loaded_modules.insert(key, Rc::clone(&mod_inst));
+            mod_inst
+        };
+
+        match items {
+            crate::ast::ImportItems::Module { alias } => {
+                let default_alias = module_specifier
+                    .split('.')
+                    .next_back()
+                    .unwrap_or(module_specifier);
+                let effective_alias = alias.as_deref().unwrap_or(default_alias);
+                self.scopes.last_mut().unwrap().insert(
+                    effective_alias.to_string(),
+                    Binding {
+                        variable_type: Type::Module,
+                        is_final: true,
+                        value: Value::Module(Rc::clone(&module_instance)),
+                    },
+                );
+            }
+            crate::ast::ImportItems::All => {
+                let m = module_instance.borrow();
+                for (name, func) in &m.functions {
+                    self.functions.insert(name.clone(), func.clone());
+                }
+                for (name, st) in &m.structs {
+                    self.structs.insert(name.clone(), st.clone());
+                }
+                for (name, cl) in &m.classes {
+                    self.classes.insert(name.clone(), cl.clone());
+                }
+                for (name, binding) in &m.globals {
+                    self.scopes
+                        .last_mut()
+                        .unwrap()
+                        .insert(name.clone(), binding.clone());
+                }
+            }
+            crate::ast::ImportItems::Named(item_list) => {
+                let m = module_instance.borrow();
+                for item in item_list {
+                    let target_name = item.alias.as_ref().unwrap_or(&item.name);
+                    if let Some(cl) = m.classes.get(&item.name) {
+                        self.classes.insert(target_name.clone(), cl.clone());
+                        if target_name != &item.name {
+                            self.type_aliases
+                                .insert(target_name.clone(), item.name.clone());
+                        }
+                    }
+                    if let Some(st) = m.structs.get(&item.name) {
+                        self.structs.insert(target_name.clone(), st.clone());
+                        if target_name != &item.name {
+                            self.type_aliases
+                                .insert(target_name.clone(), item.name.clone());
+                        }
+                    }
+                    if let Some(func) = m.functions.get(&item.name) {
+                        self.functions.insert(target_name.clone(), func.clone());
+                    }
+                    if let Some(binding) = m.globals.get(&item.name) {
+                        self.scopes
+                            .last_mut()
+                            .unwrap()
+                            .insert(target_name.clone(), binding.clone());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn canonical_type(&self, ty: &Type) -> Type {
+        match ty {
+            Type::Custom(name) => {
+                let mut current = name.clone();
+                while let Some(target) = self.type_aliases.get(&current) {
+                    current = target.clone();
+                }
+                Type::Custom(current)
+            }
+            Type::Array(inner) => Type::array(self.canonical_type(inner)),
+            Type::Map { key, value } => {
+                Type::map(self.canonical_type(key), self.canonical_type(value))
+            }
+            other => other.clone(),
+        }
     }
 
     pub(super) fn get(&self, name: &str) -> Option<&Binding> {

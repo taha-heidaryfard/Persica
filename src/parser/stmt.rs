@@ -1,6 +1,6 @@
 use super::Parser;
 use crate::{
-    ast::{FieldDef, MethodDef, Parameter, Stmt, StmtKind, Type},
+    ast::{FieldDef, ImportItem, ImportItems, MethodDef, Parameter, Stmt, StmtKind, Type},
     diagnostic::{Diagnostic, Phase},
     lexer::TokenKind,
     source::Span,
@@ -8,6 +8,12 @@ use crate::{
 
 impl<'a> Parser<'a> {
     pub(super) fn declaration(&mut self) -> Result<Stmt, Diagnostic> {
+        if self.matches(&[TokenKind::Import]) {
+            return self.import_statement(self.previous().span);
+        }
+        if self.matches(&[TokenKind::From]) {
+            return self.parse_from_import_statement(self.previous().span);
+        }
         if self.matches(&[TokenKind::Struct]) {
             return self.struct_declaration(self.previous().span);
         }
@@ -24,6 +30,108 @@ impl<'a> Parser<'a> {
             return self.variable_declaration(false);
         }
         self.statement()
+    }
+
+    fn parse_module_path(&mut self) -> Result<(String, Span), Diagnostic> {
+        if self.matches(&[TokenKind::StringLiteral]) {
+            let tok = self.previous().clone();
+            return Ok((tok.lexeme, tok.span));
+        }
+        let first = self
+            .consume(TokenKind::Identifier, "expected module name")?
+            .clone();
+        let mut path = first.lexeme;
+        let mut end = first.span;
+        while self.matches(&[TokenKind::Dot]) {
+            let next_ident = self
+                .consume(TokenKind::Identifier, "expected submodule name after '.'")?
+                .clone();
+            path.push('.');
+            path.push_str(&next_ident.lexeme);
+            end = next_ident.span;
+        }
+        Ok((path, first.span.merge(end)))
+    }
+
+    fn import_statement(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
+        let (module, _) = self.parse_module_path()?;
+        let alias = if self.matches(&[TokenKind::As]) {
+            Some(
+                self.consume(TokenKind::Identifier, "expected alias name after 'as'")?
+                    .lexeme
+                    .clone(),
+            )
+        } else {
+            None
+        };
+        let end = self
+            .consume(TokenKind::Semicolon, "expected ';' after import statement")?
+            .span;
+        Ok(Stmt {
+            kind: StmtKind::Import {
+                module,
+                items: ImportItems::Module { alias },
+            },
+            span: start.merge(end),
+        })
+    }
+
+    fn parse_from_import_statement(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
+        let (module, _) = self.parse_module_path()?;
+        self.consume(
+            TokenKind::Import,
+            "expected 'import' after module path in 'from' statement",
+        )?;
+        let items = if self.matches(&[TokenKind::Star]) {
+            ImportItems::All
+        } else {
+            let closing_token = if self.matches(&[TokenKind::LeftParen]) {
+                Some(TokenKind::RightParen)
+            } else if self.matches(&[TokenKind::LeftBrace]) {
+                Some(TokenKind::RightBrace)
+            } else {
+                None
+            };
+            let mut list = Vec::new();
+            loop {
+                let item_start = self.peek().span;
+                let name = self
+                    .consume(TokenKind::Identifier, "expected import symbol name")?
+                    .clone();
+                let (alias, item_end) = if self.matches(&[TokenKind::As]) {
+                    let alias_tok = self
+                        .consume(TokenKind::Identifier, "expected alias name after 'as'")?
+                        .clone();
+                    (Some(alias_tok.lexeme), alias_tok.span)
+                } else {
+                    (None, name.span)
+                };
+                list.push(ImportItem {
+                    name: name.lexeme,
+                    alias,
+                    span: item_start.merge(item_end),
+                });
+                if !self.matches(&[TokenKind::Comma]) {
+                    break;
+                }
+                if let Some(closing) = closing_token
+                    && self.check(closing)
+                {
+                    break;
+                }
+            }
+            if let Some(closing) = closing_token {
+                self.consume(closing, "expected closing delimiter for import list")?;
+            }
+            ImportItems::Named(list)
+        };
+        let end = self
+            .consume(TokenKind::Semicolon, "expected ';' after import statement")?
+            .span;
+        Ok(Stmt {
+            kind: StmtKind::Import { module, items },
+            span: start.merge(end),
+        })
     }
 
     fn variable_declaration(&mut self, is_final: bool) -> Result<Stmt, Diagnostic> {

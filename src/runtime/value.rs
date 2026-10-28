@@ -1,3 +1,4 @@
+use super::ModuleInstance;
 use crate::ast::Type;
 use std::{cell::RefCell, fmt, rc::Rc};
 
@@ -20,6 +21,7 @@ pub enum Value {
         fields: Vec<(String, Value)>,
     },
     Class(Rc<RefCell<ClassInstance>>),
+    Module(Rc<RefCell<ModuleInstance>>),
     Void,
 }
 
@@ -50,6 +52,7 @@ impl Value {
             }
             Self::Struct { name, .. } => Type::Custom(name.clone()),
             Self::Class(inst) => Type::Custom(inst.borrow().name.clone()),
+            Self::Module(_) => Type::Module,
             Self::Void => Type::Void,
         }
     }
@@ -63,6 +66,7 @@ impl Value {
             (Type::Float, Value::Float(_)) => true,
             (Type::Bool, Value::Bool(_)) => true,
             (Type::String, Value::String(_)) => true,
+            (Type::Module, Value::Module(_)) => true,
             (Type::Custom(exp_name), Value::Struct { name, .. }) => exp_name == name,
             (Type::Custom(exp_name), Value::Class(inst)) => exp_name == &inst.borrow().name,
             (Type::Array(expected_elem), Value::Array(values)) => {
@@ -157,6 +161,7 @@ impl fmt::Display for Value {
                     )
                 }
             }
+            Self::Module(m) => write!(f, "<module '{}'>", m.borrow().name),
             Self::Void => f.write_str("void"),
         }
     }

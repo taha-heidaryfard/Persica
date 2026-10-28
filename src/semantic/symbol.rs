@@ -27,6 +27,16 @@ pub(super) struct ClassInfo {
     pub(super) methods: HashMap<String, FunctionSignature>,
 }
 
+#[derive(Debug, Clone)]
+pub(super) struct ModuleSymbol {
+    #[allow(dead_code)]
+    pub(super) name: String,
+    pub(super) functions: HashMap<String, FunctionSignature>,
+    pub(super) structs: HashMap<String, StructInfo>,
+    pub(super) classes: HashMap<String, ClassInfo>,
+    pub(super) variables: HashMap<String, VariableSymbol>,
+}
+
 pub(super) fn require_arity(
     callee: &str,
     arguments: &[Expr],

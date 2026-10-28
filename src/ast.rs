@@ -9,6 +9,7 @@ pub enum Type {
     String,
     Void,
     Any,
+    Module,
     Custom(String),
     Array(Box<Type>),
     Map { key: Box<Type>, value: Box<Type> },
@@ -44,6 +45,7 @@ impl fmt::Display for Type {
             Self::String => f.write_str("string"),
             Self::Void => f.write_str("void"),
             Self::Any => f.write_str("any"),
+            Self::Module => f.write_str("module"),
             Self::Custom(name) => f.write_str(name),
             Self::Array(element) => write!(f, "{element}[]"),
             Self::Map { key, value } => write!(f, "map<{key}, {value}>"),
@@ -162,6 +164,20 @@ pub struct Parameter {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ImportItem {
+    pub name: String,
+    pub alias: Option<String>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ImportItems {
+    Module { alias: Option<String> },
+    All,
+    Named(Vec<ImportItem>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Stmt {
     pub kind: StmtKind,
     pub span: Span,
@@ -205,6 +221,10 @@ pub enum StmtKind {
     Break,
     Continue,
     Return(Option<Expr>),
+    Import {
+        module: String,
+        items: ImportItems,
+    },
     StructDeclaration {
         name: String,
         fields: Vec<FieldDef>,

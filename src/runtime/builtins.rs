@@ -21,8 +21,13 @@ impl Interpreter {
             for (field_def, val) in struct_def.fields.iter().zip(values) {
                 fields.push((field_def.name.clone(), val));
             }
+            let canonical_name =
+                match self.canonical_type(&crate::ast::Type::Custom(callee.to_string())) {
+                    crate::ast::Type::Custom(n) => n,
+                    _ => callee.to_string(),
+                };
             return Ok(Value::Struct {
-                name: callee.to_string(),
+                name: canonical_name,
                 fields,
             });
         }
@@ -31,13 +36,48 @@ impl Interpreter {
             for (field_def, val) in class_def.fields.iter().zip(values) {
                 fields.push((field_def.name.clone(), val));
             }
+            let canonical_name =
+                match self.canonical_type(&crate::ast::Type::Custom(callee.to_string())) {
+                    crate::ast::Type::Custom(n) => n,
+                    _ => callee.to_string(),
+                };
             let instance = super::value::ClassInstance {
-                name: callee.to_string(),
+                name: canonical_name,
                 fields,
             };
             return Ok(Value::Class(std::rc::Rc::new(std::cell::RefCell::new(
                 instance,
             ))));
+        }
+        for mod_rc in self.loaded_modules.values() {
+            let m = mod_rc.borrow();
+            if let Some(struct_def) = m.structs.get(callee).cloned() {
+                let mut fields = Vec::new();
+                for (field_def, val) in struct_def.fields.iter().zip(values) {
+                    fields.push((field_def.name.clone(), val));
+                }
+                return Ok(Value::Struct {
+                    name: callee.to_string(),
+                    fields,
+                });
+            }
+            if let Some(class_def) = m.classes.get(callee).cloned() {
+                let mut fields = Vec::new();
+                for (field_def, val) in class_def.fields.iter().zip(values) {
+                    fields.push((field_def.name.clone(), val));
+                }
+                let instance = super::value::ClassInstance {
+                    name: callee.to_string(),
+                    fields,
+                };
+                return Ok(Value::Class(std::rc::Rc::new(std::cell::RefCell::new(
+                    instance,
+                ))));
+            }
+            if let Some(func) = m.functions.get(callee).cloned() {
+                drop(m);
+                return self.call_function_def(&func, callee, values, expression);
+            }
         }
         if let Some(inst) = &self.current_instance {
             let class_name = inst.borrow().name.clone();

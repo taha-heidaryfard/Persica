@@ -1,0 +1,32 @@
+// Persica v0.10.0: Python-style Modules & Imports Gallery
+
+// 1. Direct module import
+import examples.math_lib;
+print("=== 1. Direct Module Import ===");
+print("PI from math_lib: " + to_string(math_lib.PI));
+print("add(15, 25): " + to_string(math_lib.add(15, 25)));
+
+// 2. Import with alias
+import examples.math_lib as m;
+print("\n=== 2. Module Import with Alias ===");
+print("m.factorial(5): " + to_string(m.factorial(5)));
+
+// 3. From ... import named items
+from examples.models_lib import Vector2D, Account;
+print("\n=== 3. From Import Named Items ===");
+Vector2D v1 = Vector2D(3.0, 4.0);
+print("Vector2D: (" + to_string(v1.x) + ", " + to_string(v1.y) + ")");
+
+Account acc = Account("Ali", 1000.0);
+acc.deposit(250.5);
+acc.display();
+
+// 4. From ... import with grouping and aliases
+from examples.models_lib import (Vector2D as Vec2, Account as UserAcc);
+print("\n=== 4. Grouped Import with Aliases ===");
+Vec2 v2 = Vec2(10.0, 20.0);
+print("Vec2.x: " + to_string(v2.x));
+
+UserAcc uacc = UserAcc("Sara", 500.0);
+uacc.deposit(100.0);
+uacc.display();

@@ -2,10 +2,13 @@ pub mod ast;
 pub mod builtins;
 pub mod diagnostic;
 pub mod lexer;
+pub mod module;
 pub mod parser;
 pub mod runtime;
 pub mod semantic;
 pub mod source;
+
+pub use module::{clear_virtual_modules, register_virtual_module};
 
 use ast::Program;
 use diagnostic::Diagnostic;

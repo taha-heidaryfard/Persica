@@ -15,10 +15,11 @@ impl Interpreter {
                 initializer,
             } => {
                 let value = self.evaluate(initializer)?;
+                let canonical_type = self.canonical_type(variable_type);
                 self.scopes.last_mut().unwrap().insert(
                     name.clone(),
                     Binding {
-                        variable_type: variable_type.clone(),
+                        variable_type: canonical_type,
                         is_final: *is_final,
                         value,
                     },
@@ -27,7 +28,8 @@ impl Interpreter {
             }
             StmtKind::FunctionDeclaration { .. }
             | StmtKind::StructDeclaration { .. }
-            | StmtKind::ClassDeclaration { .. } => Ok(Flow::Normal),
+            | StmtKind::ClassDeclaration { .. }
+            | StmtKind::Import { .. } => Ok(Flow::Normal),
             StmtKind::Block(statements) => self.execute_scope(statements),
             StmtKind::If {
                 condition,
@@ -316,6 +318,17 @@ impl Interpreter {
                                 )
                             })
                     }
+                    Value::Module(mod_rc) => {
+                        let m = mod_rc.borrow();
+                        if let Some(binding) = m.globals.get(name) {
+                            Ok(binding.value.clone())
+                        } else {
+                            Err(runtime_expr(
+                                expression,
+                                format!("module '{}' has no variable '{name}'", m.name),
+                            ))
+                        }
+                    }
                     actual => Err(runtime_expr(
                         expression,
                         format!("cannot access property '{name}' on {actual}"),
@@ -595,8 +608,9 @@ impl Interpreter {
         self.evaluate_call(callee, arguments, expression)
     }
 
-    pub(super) fn call_user_function(
+    pub(super) fn call_function_def(
         &mut self,
+        function: &super::Function,
         name: &str,
         values: Vec<Value>,
         expression: &Expr,
@@ -604,11 +618,6 @@ impl Interpreter {
         if self.call_depth >= 256 {
             return Err(runtime_expr(expression, "maximum call depth exceeded"));
         }
-        let function = self
-            .functions
-            .get(name)
-            .cloned()
-            .ok_or_else(|| runtime_expr(expression, format!("undefined function '{name}'")))?;
         self.call_depth += 1;
         self.scopes.push(HashMap::new());
         for (parameter, value) in function.parameters.iter().zip(values) {
@@ -637,6 +646,20 @@ impl Interpreter {
         }
     }
 
+    pub(super) fn call_user_function(
+        &mut self,
+        name: &str,
+        values: Vec<Value>,
+        expression: &Expr,
+    ) -> Result<Value, Diagnostic> {
+        let function = self
+            .functions
+            .get(name)
+            .cloned()
+            .ok_or_else(|| runtime_expr(expression, format!("undefined function '{name}'")))?;
+        self.call_function_def(&function, name, values, expression)
+    }
+
     fn evaluate_string(&mut self, expression: &Expr) -> Result<String, Diagnostic> {
         match self.evaluate(expression)? {
             Value::String(value) => Ok(value),
@@ -652,26 +675,62 @@ impl Interpreter {
         whole: &Expr,
     ) -> Result<Value, Diagnostic> {
         let target = self.evaluate(object)?;
-        let inst_rc = match target {
-            Value::Class(inst) => inst,
-            Value::Struct { name, .. } => {
-                return Err(runtime_expr(
-                    whole,
-                    format!("struct '{name}' has no methods"),
-                ));
+        match target {
+            Value::Class(inst) => {
+                let mut values = Vec::new();
+                for arg in arguments {
+                    values.push(self.evaluate(arg)?);
+                }
+                self.call_class_method(&inst, method_name, values, whole)
             }
-            actual => {
-                return Err(runtime_expr(
+            Value::Module(mod_rc) => {
+                let mut values = Vec::new();
+                for arg in arguments {
+                    values.push(self.evaluate(arg)?);
+                }
+                let m = mod_rc.borrow();
+                if let Some(func) = m.functions.get(method_name).cloned() {
+                    drop(m);
+                    return self.call_function_def(&func, method_name, values, whole);
+                }
+                if let Some(st) = m.structs.get(method_name).cloned() {
+                    let mut fields = Vec::new();
+                    for (field_def, val) in st.fields.iter().zip(values) {
+                        fields.push((field_def.name.clone(), val));
+                    }
+                    return Ok(Value::Struct {
+                        name: method_name.to_string(),
+                        fields,
+                    });
+                }
+                if let Some(cl) = m.classes.get(method_name).cloned() {
+                    let mut fields = Vec::new();
+                    for (field_def, val) in cl.fields.iter().zip(values) {
+                        fields.push((field_def.name.clone(), val));
+                    }
+                    let instance = ClassInstance {
+                        name: method_name.to_string(),
+                        fields,
+                    };
+                    return Ok(Value::Class(Rc::new(RefCell::new(instance))));
+                }
+                Err(runtime_expr(
                     whole,
-                    format!("cannot call method '{method_name}' on {actual}"),
-                ));
+                    format!(
+                        "module '{}' has no function or class '{method_name}'",
+                        m.name
+                    ),
+                ))
             }
-        };
-        let mut values = Vec::new();
-        for arg in arguments {
-            values.push(self.evaluate(arg)?);
+            Value::Struct { name, .. } => Err(runtime_expr(
+                whole,
+                format!("struct '{name}' has no methods"),
+            )),
+            actual => Err(runtime_expr(
+                whole,
+                format!("cannot call method '{method_name}' on {actual}"),
+            )),
         }
-        self.call_class_method(&inst_rc, method_name, values, whole)
     }
 
     pub(super) fn call_class_method(

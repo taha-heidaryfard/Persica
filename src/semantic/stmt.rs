@@ -78,6 +78,7 @@ impl Analyzer {
                     ));
                 }
             }
+            StmtKind::Import { .. } => {}
             StmtKind::StructDeclaration { .. } => {
                 if self.scopes.len() != 1 {
                     return Err(error(

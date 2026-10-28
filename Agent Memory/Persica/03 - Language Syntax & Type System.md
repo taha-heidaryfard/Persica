@@ -173,3 +173,36 @@ User u2 = u1;
 u2.birthday();
 print(u1.get_age()); // 24
 ```
+
+---
+
+## ۴. ماژول‌ها و سیستم ایمپورت (Modules & Imports - v0.10.0)
+
+در نسخه 0.10.0 سیستم ماژولار کامل و مدرن به سبک پایتون اضافه شد.
+
+```persica
+// ایمپورت مستقیم ماژول
+import math;
+print(math.sqrt(16.0));
+
+// ایمپورت با نام مستعار
+import math as m;
+print(m.pi);
+
+// ایمپورت نمادهای مشخص (بدون نیاز به کوتیشن یا پسوند persi.)
+from models import Point, User;
+
+// ایمپورت با گروه‌بندی پرانتز یا آکولاد
+from models import (Point, User);
+from models import {Point, User};
+
+// ایمپورت با نام مستعار برای نمادها
+from models import Point as Pt;
+
+// ایمپورت همگانی
+from utils import *;
+
+// زیرماژول‌های نقطه‌ای
+from helpers.geometry import Circle;
+```
+
