@@ -49,6 +49,10 @@ pub(super) const RESERVED_BUILTINS: &[&str] = &[
     "stdev",
     "insert",
     "remove",
+    "contains_key",
+    "keys",
+    "values",
+    "remove_key",
 ];
 
 pub(super) fn is_reserved(name: &str) -> bool {
@@ -103,10 +107,10 @@ impl Analyzer {
             "len" => {
                 require_arity(callee, arguments, 1, expression)?;
                 match self.expression_type(&arguments[0])? {
-                    Type::String | Type::Array(_) => Ok(Type::Int),
+                    Type::String | Type::Array(_) | Type::Map { .. } | Type::Any => Ok(Type::Int),
                     actual => Err(error_expr(
                         &arguments[0],
-                        format!("len expects a string or array, found {actual}"),
+                        format!("len expects a string, array, or map, found {actual}"),
                     )),
                 }
             }
@@ -380,6 +384,60 @@ impl Analyzer {
                 let actual = self.expression_type(&arguments[1])?;
                 self.require_type(element, &actual, &arguments[1])?;
                 Ok(array_type)
+            }
+            "contains_key" => {
+                require_arity(callee, arguments, 2, expression)?;
+                let map_type = self.expression_type(&arguments[0])?;
+                match map_type {
+                    Type::Map { key, .. } => {
+                        let actual = self.expression_type(&arguments[1])?;
+                        self.require_type(&key, &actual, &arguments[1])?;
+                        Ok(Type::Bool)
+                    }
+                    Type::Any => Ok(Type::Bool),
+                    actual => Err(error_expr(
+                        &arguments[0],
+                        format!("contains_key expects a map, found {actual}"),
+                    )),
+                }
+            }
+            "keys" => {
+                require_arity(callee, arguments, 1, expression)?;
+                match self.expression_type(&arguments[0])? {
+                    Type::Map { key, .. } => Ok(Type::array(*key)),
+                    Type::Any => Ok(Type::array(Type::Any)),
+                    actual => Err(error_expr(
+                        &arguments[0],
+                        format!("keys expects a map, found {actual}"),
+                    )),
+                }
+            }
+            "values" => {
+                require_arity(callee, arguments, 1, expression)?;
+                match self.expression_type(&arguments[0])? {
+                    Type::Map { value, .. } => Ok(Type::array(*value)),
+                    Type::Any => Ok(Type::array(Type::Any)),
+                    actual => Err(error_expr(
+                        &arguments[0],
+                        format!("values expects a map, found {actual}"),
+                    )),
+                }
+            }
+            "remove_key" => {
+                require_arity(callee, arguments, 2, expression)?;
+                let map_type = self.expression_type(&arguments[0])?;
+                match map_type {
+                    Type::Map { key, value } => {
+                        let actual = self.expression_type(&arguments[1])?;
+                        self.require_type(&key, &actual, &arguments[1])?;
+                        Ok(Type::map(*key, *value))
+                    }
+                    Type::Any => Ok(Type::dict()),
+                    actual => Err(error_expr(
+                        &arguments[0],
+                        format!("remove_key expects a map, found {actual}"),
+                    )),
+                }
             }
             _ => Err(error_expr(
                 expression,

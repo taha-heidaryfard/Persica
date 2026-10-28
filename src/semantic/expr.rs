@@ -34,6 +34,30 @@ impl Analyzer {
                 }
                 Ok(Type::array(element_type))
             }
+            ExprKind::Map(entries) => {
+                let Some((first_k, first_v)) = entries.first() else {
+                    return Ok(Type::dict());
+                };
+                let mut key_type = self.expression_type(first_k)?;
+                let mut val_type = self.expression_type(first_v)?;
+                if key_type == Type::Void {
+                    return Err(error_expr(first_k, "void values cannot be map keys"));
+                }
+                if val_type == Type::Void {
+                    return Err(error_expr(first_v, "void values cannot be map values"));
+                }
+                for (k, v) in &entries[1..] {
+                    let k_actual = self.expression_type(k)?;
+                    let v_actual = self.expression_type(v)?;
+                    if k_actual != key_type {
+                        key_type = Type::Any;
+                    }
+                    if v_actual != val_type {
+                        val_type = Type::Any;
+                    }
+                }
+                Ok(Type::map(key_type, val_type))
+            }
             ExprKind::Identifier(name) => self.variable(name, expression),
             ExprKind::Grouping(inner) => self.expression_type(inner),
             ExprKind::Assignment { name, value } => {
@@ -54,13 +78,34 @@ impl Analyzer {
                 index,
                 value,
             } => {
-                self.expect_expression(index, &Type::Int)?;
-                let Type::Array(element) = self.expression_type(target)? else {
-                    return Err(error_expr(target, "index assignment requires an array"));
-                };
-                let actual = self.expression_type(value)?;
-                self.require_type(&element, &actual, value)?;
-                Ok(*element)
+                let target_type = self.expression_type(target)?;
+                match target_type {
+                    Type::Array(element) => {
+                        self.expect_expression(index, &Type::Int)?;
+                        let actual = self.expression_type_as(value, &element)?;
+                        self.require_type(&element, &actual, value)?;
+                        Ok(*element)
+                    }
+                    Type::Map {
+                        key,
+                        value: val_type,
+                    } => {
+                        let actual_key = self.expression_type(index)?;
+                        self.require_type(&key, &actual_key, index)?;
+                        let actual_val = self.expression_type_as(value, &val_type)?;
+                        self.require_type(&val_type, &actual_val, value)?;
+                        Ok(*val_type)
+                    }
+                    Type::Any => {
+                        self.expression_type(index)?;
+                        self.expression_type(value)?;
+                        Ok(Type::Any)
+                    }
+                    actual => Err(error_expr(
+                        target,
+                        format!("cannot index-assign a {actual} value"),
+                    )),
+                }
             }
             ExprKind::Unary { op, right } => match op {
                 UnaryOp::Not => {
@@ -79,10 +124,25 @@ impl Analyzer {
             ExprKind::Binary { left, op, right } => self.binary_type(left, *op, right, expression),
             ExprKind::Call { callee, arguments } => self.call_type(callee, arguments, expression),
             ExprKind::Index { target, index } => {
-                self.expect_expression(index, &Type::Int)?;
-                match self.expression_type(target)? {
-                    Type::Array(element) => Ok(*element),
-                    Type::String => Ok(Type::String),
+                let target_type = self.expression_type(target)?;
+                match target_type {
+                    Type::Array(element) => {
+                        self.expect_expression(index, &Type::Int)?;
+                        Ok(*element)
+                    }
+                    Type::String => {
+                        self.expect_expression(index, &Type::Int)?;
+                        Ok(Type::String)
+                    }
+                    Type::Map { key, value } => {
+                        let actual_key = self.expression_type(index)?;
+                        self.require_type(&key, &actual_key, index)?;
+                        Ok(*value)
+                    }
+                    Type::Any => {
+                        self.expression_type(index)?;
+                        Ok(Type::Any)
+                    }
                     actual => Err(error_expr(target, format!("cannot index a {actual} value"))),
                 }
             }
@@ -158,12 +218,49 @@ impl Analyzer {
         expression: &Expr,
         expected: &Type,
     ) -> Result<Type, Diagnostic> {
-        if matches!(&expression.kind, ExprKind::Array(elements) if elements.is_empty())
-            && matches!(expected, Type::Array(_))
+        if (matches!(&expression.kind, ExprKind::Array(elements) if elements.is_empty())
+            && matches!(expected, Type::Array(_)))
+            || (matches!(&expression.kind, ExprKind::Map(entries) if entries.is_empty())
+                && matches!(expected, Type::Map { .. }))
         {
+            Ok(expected.clone())
+        } else if let ExprKind::Map(entries) = &expression.kind
+            && let Type::Map {
+                key: exp_k,
+                value: exp_v,
+            } = expected
+        {
+            for (k, v) in entries {
+                let actual_k = self.expression_type_as(k, exp_k)?;
+                self.require_type(exp_k, &actual_k, k)?;
+                let actual_v = self.expression_type_as(v, exp_v)?;
+                self.require_type(exp_v, &actual_v, v)?;
+            }
             Ok(expected.clone())
         } else {
             self.expression_type(expression)
+        }
+    }
+
+    pub(super) fn is_assignable(expected: &Type, actual: &Type) -> bool {
+        if expected == actual || expected == &Type::Any || actual == &Type::Any {
+            return true;
+        }
+        match (expected, actual) {
+            (Type::Array(exp_elem), Type::Array(act_elem)) => {
+                Self::is_assignable(exp_elem, act_elem)
+            }
+            (
+                Type::Map {
+                    key: exp_k,
+                    value: exp_v,
+                },
+                Type::Map {
+                    key: act_k,
+                    value: act_v,
+                },
+            ) => Self::is_assignable(exp_k, act_k) && Self::is_assignable(exp_v, act_v),
+            _ => false,
         }
     }
 
@@ -182,7 +279,7 @@ impl Analyzer {
         actual: &Type,
         expression: &Expr,
     ) -> Result<(), Diagnostic> {
-        if expected == actual {
+        if Self::is_assignable(expected, actual) {
             Ok(())
         } else {
             Err(error_expr(

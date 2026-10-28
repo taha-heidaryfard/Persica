@@ -77,6 +77,7 @@ impl Interpreter {
                         .chars()
                         .map(|character| Value::String(character.to_string()))
                         .collect(),
+                    Value::Map(entries) => entries.into_iter().map(|(k, _)| k).collect(),
                     _ => return Err(runtime_expr(iterable, "for-in value is not iterable")),
                 };
                 self.scopes.push(HashMap::new());
@@ -207,6 +208,19 @@ impl Interpreter {
                 .map(|element| self.evaluate(element))
                 .collect::<Result<Vec<_>, _>>()
                 .map(Value::Array),
+            ExprKind::Map(entries) => {
+                let mut map_entries = Vec::new();
+                for (key_expr, val_expr) in entries {
+                    let key = self.evaluate(key_expr)?;
+                    let val = self.evaluate(val_expr)?;
+                    if let Some(existing) = map_entries.iter_mut().find(|(k, _)| k == &key) {
+                        existing.1 = val;
+                    } else {
+                        map_entries.push((key, val));
+                    }
+                }
+                Ok(Value::Map(map_entries))
+            }
             ExprKind::Identifier(name) => self
                 .get(name)
                 .map(|binding| binding.value.clone())
@@ -223,9 +237,7 @@ impl Interpreter {
                         format!("cannot assign to final variable '{name}'"),
                     ));
                 }
-                if binding.variable_type != value.value_type()
-                    && !matches!(value, Value::Array(ref values) if values.is_empty())
-                {
+                if !value.is_assignable_to(&binding.variable_type) {
                     return Err(runtime_expr(
                         expression,
                         format!(
@@ -262,27 +274,44 @@ impl Interpreter {
             ExprKind::Call { callee, arguments } => self.call(callee, arguments, expression),
             ExprKind::Index { target, index } => {
                 let target = self.evaluate(target)?;
-                let index = self.index(index)?;
                 match target {
-                    Value::Array(values) => values.get(index).cloned().ok_or_else(|| {
-                        runtime_expr(
-                            expression,
-                            format!(
-                                "array index {index} is out of bounds for length {}",
-                                values.len()
-                            ),
-                        )
-                    }),
-                    Value::String(value) => value
-                        .chars()
-                        .nth(index)
-                        .map(|ch| Value::String(ch.to_string()))
-                        .ok_or_else(|| {
+                    Value::Array(values) => {
+                        let index_num = self.index(index)?;
+                        values.get(index_num).cloned().ok_or_else(|| {
                             runtime_expr(
                                 expression,
-                                format!("string index {index} is out of bounds"),
+                                format!(
+                                    "array index {index_num} is out of bounds for length {}",
+                                    values.len()
+                                ),
                             )
-                        }),
+                        })
+                    }
+                    Value::String(value) => {
+                        let index_num = self.index(index)?;
+                        value
+                            .chars()
+                            .nth(index_num)
+                            .map(|ch| Value::String(ch.to_string()))
+                            .ok_or_else(|| {
+                                runtime_expr(
+                                    expression,
+                                    format!("string index {index_num} is out of bounds"),
+                                )
+                            })
+                    }
+                    Value::Map(entries) => {
+                        let key = self.evaluate(index)?;
+                        for (k, v) in &entries {
+                            if k == &key {
+                                return Ok(v.clone());
+                            }
+                        }
+                        Err(runtime_expr(
+                            expression,
+                            format!("key {key} not found in map"),
+                        ))
+                    }
                     _ => Err(runtime_expr(expression, "value is not indexable")),
                 }
             }
@@ -297,43 +326,89 @@ impl Interpreter {
         whole: &Expr,
     ) -> Result<Value, Diagnostic> {
         let new_value = self.evaluate(value)?;
-        let final_index = self.index(index)?;
+        let final_key = self.evaluate(index)?;
         let mut indices = Vec::new();
         let name = collect_target(target, &mut indices)
             .ok_or_else(|| runtime_expr(target, "index assignment must start from a variable"))?
             .to_owned();
-        let evaluated = indices
-            .iter()
-            .map(|item| self.index(item))
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut evaluated_keys = Vec::new();
+        for item in indices {
+            evaluated_keys.push(self.evaluate(item)?);
+        }
         let binding = self
             .get_mut(&name)
             .ok_or_else(|| runtime_expr(target, format!("undefined variable '{name}'")))?;
         let mut current = &mut binding.value;
-        for item in evaluated {
-            let Value::Array(values) = current else {
-                return Err(runtime_expr(whole, "nested index target is not an array"));
-            };
-            let length = values.len();
-            current = values.get_mut(item).ok_or_else(|| {
-                runtime_expr(
-                    whole,
-                    format!("array index {item} is out of bounds for length {length}"),
-                )
-            })?;
+        for item in evaluated_keys {
+            match current {
+                Value::Array(values) => {
+                    let idx = Self::to_usize(&item, whole)?;
+                    let length = values.len();
+                    current = values.get_mut(idx).ok_or_else(|| {
+                        runtime_expr(
+                            whole,
+                            format!("array index {idx} is out of bounds for length {length}"),
+                        )
+                    })?;
+                }
+                Value::Map(entries) => {
+                    let mut found = None;
+                    for (i, (k, _)) in entries.iter().enumerate() {
+                        if k == &item {
+                            found = Some(i);
+                            break;
+                        }
+                    }
+                    let idx = found.ok_or_else(|| {
+                        runtime_expr(whole, format!("key {item} not found in map"))
+                    })?;
+                    current = &mut entries[idx].1;
+                }
+                _ => {
+                    return Err(runtime_expr(
+                        whole,
+                        "nested index target is not an array or map",
+                    ));
+                }
+            }
         }
-        let Value::Array(values) = current else {
-            return Err(runtime_expr(whole, "index assignment requires an array"));
-        };
-        let length = values.len();
-        let slot = values.get_mut(final_index).ok_or_else(|| {
-            runtime_expr(
-                whole,
-                format!("array index {final_index} is out of bounds for length {length}"),
-            )
-        })?;
-        *slot = new_value.clone();
+        match current {
+            Value::Array(values) => {
+                let idx = Self::to_usize(&final_key, whole)?;
+                let length = values.len();
+                let slot = values.get_mut(idx).ok_or_else(|| {
+                    runtime_expr(
+                        whole,
+                        format!("array index {idx} is out of bounds for length {length}"),
+                    )
+                })?;
+                *slot = new_value.clone();
+            }
+            Value::Map(entries) => {
+                if let Some(existing) = entries.iter_mut().find(|(k, _)| k == &final_key) {
+                    existing.1 = new_value.clone();
+                } else {
+                    entries.push((final_key, new_value.clone()));
+                }
+            }
+            _ => {
+                return Err(runtime_expr(
+                    whole,
+                    "index assignment requires an array or map",
+                ));
+            }
+        }
         Ok(new_value)
+    }
+
+    fn to_usize(val: &Value, expression: &Expr) -> Result<usize, Diagnostic> {
+        match val {
+            Value::Int(value) if *value >= 0 => {
+                usize::try_from(*value).map_err(|_| runtime_expr(expression, "index is too large"))
+            }
+            Value::Int(_) => Err(runtime_expr(expression, "index cannot be negative")),
+            _ => Err(runtime_expr(expression, "array index must be an int")),
+        }
     }
 
     fn index(&mut self, expression: &Expr) -> Result<usize, Diagnostic> {

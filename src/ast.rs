@@ -8,12 +8,25 @@ pub enum Type {
     Bool,
     String,
     Void,
+    Any,
     Array(Box<Type>),
+    Map { key: Box<Type>, value: Box<Type> },
 }
 
 impl Type {
     pub fn array(element: Type) -> Self {
         Self::Array(Box::new(element))
+    }
+
+    pub fn map(key: Type, value: Type) -> Self {
+        Self::Map {
+            key: Box::new(key),
+            value: Box::new(value),
+        }
+    }
+
+    pub fn dict() -> Self {
+        Self::map(Self::Any, Self::Any)
     }
 }
 
@@ -25,7 +38,9 @@ impl fmt::Display for Type {
             Self::Bool => f.write_str("bool"),
             Self::String => f.write_str("string"),
             Self::Void => f.write_str("void"),
+            Self::Any => f.write_str("any"),
             Self::Array(element) => write!(f, "{element}[]"),
+            Self::Map { key, value } => write!(f, "map<{key}, {value}>"),
         }
     }
 }
@@ -71,6 +86,7 @@ pub struct Expr {
 pub enum ExprKind {
     Literal(Literal),
     Array(Vec<Expr>),
+    Map(Vec<(Expr, Expr)>),
     Identifier(String),
     Assignment {
         name: String,

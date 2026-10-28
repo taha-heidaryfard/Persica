@@ -294,6 +294,28 @@ impl<'a> Parser<'a> {
                 span: start.merge(end),
             });
         }
+        if self.matches(&[TokenKind::LeftBrace]) {
+            let start = self.previous().span;
+            let mut entries = Vec::new();
+            if !self.check(TokenKind::RightBrace) {
+                loop {
+                    let key = self.expression()?;
+                    self.consume(TokenKind::Colon, "expected ':' after map key")?;
+                    let value = self.expression()?;
+                    entries.push((key, value));
+                    if !self.matches(&[TokenKind::Comma]) {
+                        break;
+                    }
+                }
+            }
+            let end = self
+                .consume(TokenKind::RightBrace, "expected '}' after map entries")?
+                .span;
+            return Ok(Expr {
+                kind: ExprKind::Map(entries),
+                span: start.merge(end),
+            });
+        }
         Err(self.error_here("expected an expression"))
     }
 }

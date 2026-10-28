@@ -1,0 +1,52 @@
+// Persica Map & Dict Showcase
+// نمایش ساختار دیکشنری و مپ در پرسیکا
+
+print("=== ۱. دیکشنری به سبک پایتون (dict) ===");
+dict user = {
+    "name": "طاها",
+    "age": 22,
+    1: "رتبه اول",
+    "skills": ["Rust", "Persica", "Python"]
+};
+
+print("نام کاربر:", user["name"]);
+print("سن:", user["age"]);
+print("کلید عددی ۱:", user[1]);
+print("مهارت‌ها:", user["skills"]);
+
+// افزودن کلید جدید در زمان اجرا:
+user["city"] = "تهران";
+print("شهر اضافه شده:", user["city"]);
+print("تعداد کل اعضا:", len(user));
+
+print("\n=== ۲. مپ با نوع مشخص (map<string, int>) ===");
+map<string, int> grades = {
+    "math": 20,
+    "physics": 18
+};
+grades["chemistry"] = 19;
+print("نمره ریاضی:", grades["math"]);
+print("نمره شیمی:", grades["chemistry"]);
+
+print("\n=== ۳. مپ با مقادیر آزاد (map<any, any>) ===");
+map<any, any> data = {
+    100: "صد",
+    "status": true
+};
+print("data[100]:", data[100]);
+print("data['status']:", data["status"]);
+
+print("\n=== ۴. توابع کمکی توکار دیکشنری ===");
+print("آیا کلید 'name' وجود دارد؟", contains_key(user, "name"));
+print("آیا کلید 'email' وجود دارد؟", contains_key(user, "email"));
+
+print("کلیدهای grades:", keys(grades));
+print("نمرات (مقادیر) grades:", values(grades));
+
+dict without_city = remove_key(user, "city");
+print("کاربر پس از حذف شهر:", without_city);
+
+print("\n=== ۵. پیمایش دیکشنری با حلقه for-in ===");
+for key in grades {
+    print(key, "->", grades[key]);
+}

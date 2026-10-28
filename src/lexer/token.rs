@@ -11,6 +11,9 @@ pub enum TokenKind {
     StringType,
     Float,
     Void,
+    Any,
+    Map,
+    Dict,
     Final,
     Def,
     Return,
@@ -54,6 +57,7 @@ pub enum TokenKind {
     RightBracket,
     Comma,
     Semicolon,
+    Colon,
     Eof,
 }
 

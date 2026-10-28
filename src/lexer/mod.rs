@@ -58,6 +58,7 @@ impl<'a> Lexer<'a> {
             ']' => self.simple(TokenKind::RightBracket, start, line, column),
             ',' => self.simple(TokenKind::Comma, start, line, column),
             ';' => self.simple(TokenKind::Semicolon, start, line, column),
+            ':' => self.simple(TokenKind::Colon, start, line, column),
             '+' => {
                 let kind = if self.match_char('+') {
                     TokenKind::Increment
@@ -187,6 +188,9 @@ impl<'a> Lexer<'a> {
             "string" => TokenKind::StringType,
             "float" => TokenKind::Float,
             "void" => TokenKind::Void,
+            "any" => TokenKind::Any,
+            "map" => TokenKind::Map,
+            "dict" => TokenKind::Dict,
             "final" => TokenKind::Final,
             "def" => TokenKind::Def,
             "return" => TokenKind::Return,

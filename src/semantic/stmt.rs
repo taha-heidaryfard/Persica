@@ -129,10 +129,12 @@ impl Analyzer {
                 let element_type = match self.expression_type(iterable)? {
                     Type::Array(element) => *element,
                     Type::String => Type::String,
+                    Type::Map { key, .. } => *key,
+                    Type::Any => Type::Any,
                     actual => {
                         return Err(error_expr(
                             iterable,
-                            format!("for-in expects an array or string, found {actual}"),
+                            format!("for-in expects an array, string, or map, found {actual}"),
                         ));
                     }
                 };

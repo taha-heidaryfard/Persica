@@ -24,6 +24,7 @@ impl Interpreter {
             "len" => match &values[0] {
                 Value::String(value) => Ok(Value::Int(value.chars().count() as i64)),
                 Value::Array(value) => Ok(Value::Int(value.len() as i64)),
+                Value::Map(entries) => Ok(Value::Int(entries.len() as i64)),
                 _ => Err(runtime_expr(expression, "invalid len argument")),
             },
             "to_string" => Ok(Value::String(values[0].to_string())),
@@ -179,6 +180,40 @@ impl Interpreter {
                 };
                 array.push(values[1].clone());
                 Ok(Value::Array(array))
+            }
+            "contains_key" => {
+                let Value::Map(entries) = &values[0] else {
+                    return Err(runtime_expr(expression, "contains_key expects a map"));
+                };
+                let target = &values[1];
+                let found = entries.iter().any(|(k, _)| k == target);
+                Ok(Value::Bool(found))
+            }
+            "keys" => {
+                let Value::Map(entries) = &values[0] else {
+                    return Err(runtime_expr(expression, "keys expects a map"));
+                };
+                let keys = entries.iter().map(|(k, _)| k.clone()).collect();
+                Ok(Value::Array(keys))
+            }
+            "values" => {
+                let Value::Map(entries) = &values[0] else {
+                    return Err(runtime_expr(expression, "values expects a map"));
+                };
+                let vals = entries.iter().map(|(_, v)| v.clone()).collect();
+                Ok(Value::Array(vals))
+            }
+            "remove_key" => {
+                let Value::Map(entries) = &values[0] else {
+                    return Err(runtime_expr(expression, "remove_key expects a map"));
+                };
+                let target = &values[1];
+                let remaining = entries
+                    .iter()
+                    .filter(|(k, _)| k != target)
+                    .cloned()
+                    .collect();
+                Ok(Value::Map(remaining))
             }
             _ => self.call_user_function(callee, values, expression),
         }

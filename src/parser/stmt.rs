@@ -98,6 +98,19 @@ impl<'a> Parser<'a> {
             TokenKind::Bool => Type::Bool,
             TokenKind::StringType => Type::String,
             TokenKind::Void if allow_void => Type::Void,
+            TokenKind::Any => Type::Any,
+            TokenKind::Dict => Type::dict(),
+            TokenKind::Map => {
+                self.consume(TokenKind::Less, "expected '<' after 'map'")?;
+                let key = self.parse_type(false)?;
+                self.consume(
+                    TokenKind::Comma,
+                    "expected ',' between map key and value types",
+                )?;
+                let val = self.parse_type(false)?;
+                self.consume(TokenKind::Greater, "expected '>' after map value type")?;
+                Type::map(key, val)
+            }
             _ => {
                 return Err(Diagnostic::new(
                     Phase::Parser,
@@ -204,7 +217,20 @@ impl<'a> Parser<'a> {
     }
 
     fn for_statement(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
-        if !self.matches(&[TokenKind::LeftParen]) {
+        let is_paren_for_in = self.check(TokenKind::LeftParen)
+            && self
+                .tokens
+                .get(self.current + 1)
+                .is_some_and(|t| t.kind == TokenKind::Identifier)
+            && self
+                .tokens
+                .get(self.current + 2)
+                .is_some_and(|t| t.kind == TokenKind::In);
+
+        if is_paren_for_in || !self.matches(&[TokenKind::LeftParen]) {
+            if is_paren_for_in {
+                self.advance();
+            }
             let variable = self
                 .consume(
                     TokenKind::Identifier,
@@ -214,6 +240,12 @@ impl<'a> Parser<'a> {
                 .clone();
             self.consume(TokenKind::In, "expected 'in' after the loop variable")?;
             let iterable = self.expression()?;
+            if is_paren_for_in {
+                self.consume(
+                    TokenKind::RightParen,
+                    "expected ')' after 'for (... in ...)'",
+                )?;
+            }
             let body = Box::new(self.statement()?);
             let span = start.merge(body.span);
             return Ok(Stmt {

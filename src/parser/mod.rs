@@ -34,7 +34,13 @@ impl<'a> Parser<'a> {
     pub(super) fn is_type_start(&self) -> bool {
         matches!(
             self.peek().kind,
-            TokenKind::Int | TokenKind::Float | TokenKind::Bool | TokenKind::StringType
+            TokenKind::Int
+                | TokenKind::Float
+                | TokenKind::Bool
+                | TokenKind::StringType
+                | TokenKind::Map
+                | TokenKind::Dict
+                | TokenKind::Any
         )
     }
 
