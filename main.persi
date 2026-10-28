@@ -1,0 +1,16 @@
+// Persica 0.6 demonstration
+def int fibonacci(int n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+int[] sequence = [];
+for i in range(10) {
+    sequence = append(sequence, fibonacci(i));
+}
+
+print("Fibonacci:");
+print(sequence);
+print("count=" + to_string(len(sequence)));

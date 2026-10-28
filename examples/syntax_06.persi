@@ -1,0 +1,13 @@
+int count = to_int(input("How many numbers? "));
+final string heading = "Sequence";
+
+print(heading, end=": ");
+for number in range(count) {
+    print(number, end=" ");
+}
+print();
+
+for letter in "Persica" {
+    print(letter, end="-");
+}
+print(end="done\n");

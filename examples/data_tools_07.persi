@@ -1,0 +1,13 @@
+string raw = "  apple,banana,orange,banana  ";
+string[] fruits = split(trim(raw), ",");
+
+print("Fruits:", join(" | ", fruits));
+print("banana count:", count(trim(raw), "banana"));
+print("sorted:", sort(fruits));
+print("middle:", slice(fruits, 1, -1));
+
+float[] prices = [12.5, 4.25, 8.0];
+print("prices:", sort(prices));
+print("total:", sum(prices));
+print("average:", sum(prices) / to_float(len(prices)));
+print("sqrt(81):", sqrt(81.0));

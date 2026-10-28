@@ -1,0 +1,14 @@
+// Persica 0.7.1 - Statistics and Array Extrema
+
+int[] scores = [85, 92, 78, 90, 88, 95, 60];
+print("Scores:", scores);
+print("Min score:", min(scores));
+print("Max score:", max(scores));
+print("Mean score:", mean(scores));
+print("Median score:", median(scores));
+print("Variance:", variance(scores));
+print("Std deviation:", stdev(scores));
+
+string[] tags = ["persica", "apple", "rust"];
+print("Shortest word (min):", min(tags));
+print("Longest word (max):", max(tags));

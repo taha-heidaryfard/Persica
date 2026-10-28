@@ -1,0 +1,19 @@
+[package]
+name = "persica"
+version = "0.7.1"
+edition = "2024"
+authors = ["Taha Heidary"]
+description = "The Persica programming language interpreter"
+license = "MIT"
+
+[lib]
+name = "persica"
+path = "src/lib.rs"
+
+[[bin]]
+name = "persica"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+strip = true

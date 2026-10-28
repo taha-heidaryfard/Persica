@@ -1,0 +1,12 @@
+/* Variables are statically typed. */
+int age = 20;
+bool adult = age >= 18;
+string name = "Persica";
+
+print(name);
+print(age + 2 * 5);
+print(adult);
+
+age = 30;
+print(age == 30);
+
