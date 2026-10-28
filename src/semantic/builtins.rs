@@ -84,6 +84,32 @@ impl Analyzer {
             return Ok(signature.return_type);
         }
 
+        if let Some(class_name) = &self.current_class
+            && let Some(class_info) = self.classes.get(class_name)
+            && let Some(signature) = class_info.methods.get(callee).cloned()
+        {
+            if signature.parameters.len() != arguments.len() {
+                return Err(error_expr(
+                    expression,
+                    format!(
+                        "method '{callee}' expects {} argument{}, found {}",
+                        signature.parameters.len(),
+                        if signature.parameters.len() == 1 {
+                            ""
+                        } else {
+                            "s"
+                        },
+                        arguments.len()
+                    ),
+                ));
+            }
+            for (argument, expected) in arguments.iter().zip(&signature.parameters) {
+                let actual = self.expression_type_as(argument, expected)?;
+                self.require_type(expected, &actual, argument)?;
+            }
+            return Ok(signature.return_type);
+        }
+
         if let Some(builtin) = crate::builtins::find_builtin(callee) {
             return self.check_registry_builtin(builtin, arguments, expression);
         }

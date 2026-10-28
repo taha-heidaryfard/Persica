@@ -146,6 +146,155 @@ impl Analyzer {
                     actual => Err(error_expr(target, format!("cannot index a {actual} value"))),
                 }
             }
+            ExprKind::This => {
+                if let Some(class_name) = &self.current_class {
+                    Ok(Type::Custom(class_name.clone()))
+                } else {
+                    Err(error_expr(
+                        expression,
+                        "'this' can only be used inside class methods",
+                    ))
+                }
+            }
+            ExprKind::Get { object, name } => {
+                let target_type = self.expression_type(object)?;
+                match target_type {
+                    Type::Any => Ok(Type::Any),
+                    Type::Custom(type_name) => {
+                        if let Some(st) = self.structs.get(&type_name) {
+                            if let Some((_, field_type)) = st.fields.iter().find(|(n, _)| n == name)
+                            {
+                                return Ok(field_type.clone());
+                            }
+                            return Err(error_expr(
+                                expression,
+                                format!("struct '{type_name}' has no field '{name}'"),
+                            ));
+                        }
+                        if let Some(cl) = self.classes.get(&type_name) {
+                            if let Some((_, field_type)) = cl.fields.iter().find(|(n, _)| n == name)
+                            {
+                                return Ok(field_type.clone());
+                            }
+                            return Err(error_expr(
+                                expression,
+                                format!("class '{type_name}' has no field '{name}'"),
+                            ));
+                        }
+                        Err(error_expr(
+                            expression,
+                            format!("undefined type '{type_name}'"),
+                        ))
+                    }
+                    actual => Err(error_expr(
+                        object,
+                        format!("cannot access property '{name}' on type '{actual}'"),
+                    )),
+                }
+            }
+            ExprKind::Set {
+                object,
+                name,
+                value,
+            } => {
+                let target_type = self.expression_type(object)?;
+                match target_type {
+                    Type::Any => {
+                        self.expression_type(value)?;
+                        Ok(Type::Any)
+                    }
+                    Type::Custom(type_name) => {
+                        let field_type = if let Some(st) = self.structs.get(&type_name) {
+                            st.fields
+                                .iter()
+                                .find(|(n, _)| n == name)
+                                .map(|(_, t)| t.clone())
+                        } else if let Some(cl) = self.classes.get(&type_name) {
+                            cl.fields
+                                .iter()
+                                .find(|(n, _)| n == name)
+                                .map(|(_, t)| t.clone())
+                        } else {
+                            return Err(error_expr(
+                                expression,
+                                format!("undefined type '{type_name}'"),
+                            ));
+                        };
+                        let Some(expected) = field_type else {
+                            return Err(error_expr(
+                                expression,
+                                format!("type '{type_name}' has no field '{name}'"),
+                            ));
+                        };
+                        let actual = self.expression_type_as(value, &expected)?;
+                        self.require_type(&expected, &actual, value)?;
+                        Ok(expected)
+                    }
+                    actual => Err(error_expr(
+                        object,
+                        format!("cannot set property '{name}' on type '{actual}'"),
+                    )),
+                }
+            }
+            ExprKind::MethodCall {
+                object,
+                method,
+                arguments,
+            } => {
+                let target_type = self.expression_type(object)?;
+                match target_type {
+                    Type::Any => {
+                        for arg in arguments {
+                            self.expression_type(arg)?;
+                        }
+                        Ok(Type::Any)
+                    }
+                    Type::Custom(type_name) => {
+                        if self.structs.contains_key(&type_name) {
+                            return Err(error_expr(
+                                expression,
+                                format!("struct '{type_name}' has no methods"),
+                            ));
+                        }
+                        let Some(class_info) = self.classes.get(&type_name).cloned() else {
+                            return Err(error_expr(
+                                expression,
+                                format!("undefined class '{type_name}'"),
+                            ));
+                        };
+                        let Some(signature) = class_info.methods.get(method) else {
+                            return Err(error_expr(
+                                expression,
+                                format!("class '{type_name}' has no method '{method}'"),
+                            ));
+                        };
+                        if signature.parameters.len() != arguments.len() {
+                            return Err(error_expr(
+                                expression,
+                                format!(
+                                    "method '{method}' expects {} argument{}, found {}",
+                                    signature.parameters.len(),
+                                    if signature.parameters.len() == 1 {
+                                        ""
+                                    } else {
+                                        "s"
+                                    },
+                                    arguments.len()
+                                ),
+                            ));
+                        }
+                        for (argument, expected) in arguments.iter().zip(&signature.parameters) {
+                            let actual = self.expression_type_as(argument, expected)?;
+                            self.require_type(expected, &actual, argument)?;
+                        }
+                        Ok(signature.return_type.clone())
+                    }
+                    actual => Err(error_expr(
+                        object,
+                        format!("cannot call method '{method}' on type '{actual}'"),
+                    )),
+                }
+            }
         }
     }
 
@@ -294,11 +443,21 @@ impl Analyzer {
     }
 
     fn variable_symbol(&self, name: &str, expression: &Expr) -> Result<VariableSymbol, Diagnostic> {
-        self.scopes
-            .iter()
-            .rev()
-            .find_map(|scope| scope.get(name))
-            .cloned()
-            .ok_or_else(|| error_expr(expression, format!("undefined variable '{name}'")))
+        if let Some(symbol) = self.scopes.iter().rev().find_map(|scope| scope.get(name)) {
+            return Ok(symbol.clone());
+        }
+        if let Some(class_name) = &self.current_class
+            && let Some(class_info) = self.classes.get(class_name)
+            && let Some((_, field_type)) = class_info.fields.iter().find(|(n, _)| n == name)
+        {
+            return Ok(VariableSymbol {
+                variable_type: field_type.clone(),
+                is_final: false,
+            });
+        }
+        Err(error_expr(
+            expression,
+            format!("undefined variable '{name}'"),
+        ))
     }
 }

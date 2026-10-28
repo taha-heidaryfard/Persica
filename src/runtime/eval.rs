@@ -1,9 +1,9 @@
-use super::{Binding, Flow, Interpreter, Value, runtime_expr};
+use super::{Binding, Flow, Interpreter, Value, runtime_expr, value::ClassInstance};
 use crate::{
     ast::{BinaryOp, Expr, ExprKind, Literal, Stmt, StmtKind, Type, UnaryOp},
     diagnostic::Diagnostic,
 };
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 impl Interpreter {
     pub(super) fn execute(&mut self, statement: &Stmt) -> Result<Flow, Diagnostic> {
@@ -25,7 +25,9 @@ impl Interpreter {
                 );
                 Ok(Flow::Normal)
             }
-            StmtKind::FunctionDeclaration { .. } => Ok(Flow::Normal),
+            StmtKind::FunctionDeclaration { .. }
+            | StmtKind::StructDeclaration { .. }
+            | StmtKind::ClassDeclaration { .. } => Ok(Flow::Normal),
             StmtKind::Block(statements) => self.execute_scope(statements),
             StmtKind::If {
                 condition,
@@ -221,40 +223,115 @@ impl Interpreter {
                 }
                 Ok(Value::Map(map_entries))
             }
-            ExprKind::Identifier(name) => self
-                .get(name)
-                .map(|binding| binding.value.clone())
-                .ok_or_else(|| runtime_expr(expression, format!("undefined variable '{name}'"))),
+            ExprKind::Identifier(name) => {
+                if let Some(binding) = self.get(name) {
+                    Ok(binding.value.clone())
+                } else if let Some(inst) = &self.current_instance {
+                    let inst = inst.borrow();
+                    if let Some((_, val)) = inst.fields.iter().find(|(n, _)| n == name) {
+                        Ok(val.clone())
+                    } else {
+                        Err(runtime_expr(
+                            expression,
+                            format!("undefined variable '{name}'"),
+                        ))
+                    }
+                } else {
+                    Err(runtime_expr(
+                        expression,
+                        format!("undefined variable '{name}'"),
+                    ))
+                }
+            }
             ExprKind::Grouping(inner) => self.evaluate(inner),
             ExprKind::Assignment { name, value } => {
                 let value = self.evaluate(value)?;
-                let binding = self.get_mut(name).ok_or_else(|| {
-                    runtime_expr(expression, format!("undefined variable '{name}'"))
-                })?;
-                if binding.is_final {
-                    return Err(runtime_expr(
-                        expression,
-                        format!("cannot assign to final variable '{name}'"),
-                    ));
+                if let Some(binding) = self.get_mut(name) {
+                    if binding.is_final {
+                        return Err(runtime_expr(
+                            expression,
+                            format!("cannot assign to final variable '{name}'"),
+                        ));
+                    }
+                    if !value.is_assignable_to(&binding.variable_type) {
+                        return Err(runtime_expr(
+                            expression,
+                            format!(
+                                "cannot assign {} to {}",
+                                value.value_type(),
+                                binding.variable_type
+                            ),
+                        ));
+                    }
+                    binding.value = value.clone();
+                    return Ok(value);
                 }
-                if !value.is_assignable_to(&binding.variable_type) {
-                    return Err(runtime_expr(
-                        expression,
-                        format!(
-                            "cannot assign {} to {}",
-                            value.value_type(),
-                            binding.variable_type
-                        ),
-                    ));
+                if let Some(inst) = &self.current_instance {
+                    let mut inst = inst.borrow_mut();
+                    if let Some((_, fval)) = inst.fields.iter_mut().find(|(n, _)| n == name) {
+                        *fval = value.clone();
+                        return Ok(value);
+                    }
                 }
-                binding.value = value.clone();
-                Ok(value)
+                Err(runtime_expr(
+                    expression,
+                    format!("undefined variable '{name}'"),
+                ))
             }
             ExprKind::IndexAssignment {
                 target,
                 index,
                 value,
             } => self.assign_index(target, index, value, expression),
+            ExprKind::This => {
+                if let Some(inst) = &self.current_instance {
+                    Ok(Value::Class(Rc::clone(inst)))
+                } else {
+                    Err(runtime_expr(
+                        expression,
+                        "'this' can only be used inside class methods",
+                    ))
+                }
+            }
+            ExprKind::Get { object, name } => {
+                let obj = self.evaluate(object)?;
+                match obj {
+                    Value::Struct { fields, .. } => fields
+                        .iter()
+                        .find(|(n, _)| n == name)
+                        .map(|(_, v)| v.clone())
+                        .ok_or_else(|| {
+                            runtime_expr(expression, format!("struct has no field '{name}'"))
+                        }),
+                    Value::Class(inst) => {
+                        let inst = inst.borrow();
+                        inst.fields
+                            .iter()
+                            .find(|(n, _)| n == name)
+                            .map(|(_, v)| v.clone())
+                            .ok_or_else(|| {
+                                runtime_expr(
+                                    expression,
+                                    format!("class '{}' has no field '{name}'", inst.name),
+                                )
+                            })
+                    }
+                    actual => Err(runtime_expr(
+                        expression,
+                        format!("cannot access property '{name}' on {actual}"),
+                    )),
+                }
+            }
+            ExprKind::Set {
+                object,
+                name,
+                value,
+            } => self.assign_field(object, name, value, expression),
+            ExprKind::MethodCall {
+                object,
+                method,
+                arguments,
+            } => self.call_method(object, method, arguments, expression),
             ExprKind::Unary { op, right } => {
                 let value = self.evaluate(right)?;
                 match (op, value) {
@@ -565,6 +642,318 @@ impl Interpreter {
             Value::String(value) => Ok(value),
             _ => Err(runtime_expr(expression, "expected a string value")),
         }
+    }
+
+    fn call_method(
+        &mut self,
+        object: &Expr,
+        method_name: &str,
+        arguments: &[Expr],
+        whole: &Expr,
+    ) -> Result<Value, Diagnostic> {
+        let target = self.evaluate(object)?;
+        let inst_rc = match target {
+            Value::Class(inst) => inst,
+            Value::Struct { name, .. } => {
+                return Err(runtime_expr(
+                    whole,
+                    format!("struct '{name}' has no methods"),
+                ));
+            }
+            actual => {
+                return Err(runtime_expr(
+                    whole,
+                    format!("cannot call method '{method_name}' on {actual}"),
+                ));
+            }
+        };
+        let mut values = Vec::new();
+        for arg in arguments {
+            values.push(self.evaluate(arg)?);
+        }
+        self.call_class_method(&inst_rc, method_name, values, whole)
+    }
+
+    pub(super) fn call_class_method(
+        &mut self,
+        inst_rc: &Rc<RefCell<ClassInstance>>,
+        method_name: &str,
+        values: Vec<Value>,
+        expression: &Expr,
+    ) -> Result<Value, Diagnostic> {
+        let class_name = inst_rc.borrow().name.clone();
+        let class_def =
+            self.classes.get(&class_name).cloned().ok_or_else(|| {
+                runtime_expr(expression, format!("undefined class '{class_name}'"))
+            })?;
+        let method_def = class_def.methods.get(method_name).cloned().ok_or_else(|| {
+            runtime_expr(
+                expression,
+                format!("class '{class_name}' has no method '{method_name}'"),
+            )
+        })?;
+        if self.call_depth >= 256 {
+            return Err(runtime_expr(expression, "maximum call depth exceeded"));
+        }
+        self.call_depth += 1;
+        let previous_instance = self.current_instance.replace(Rc::clone(inst_rc));
+        self.scopes.push(HashMap::new());
+        self.scopes.last_mut().unwrap().insert(
+            "this".to_string(),
+            Binding {
+                variable_type: Type::Custom(class_name.clone()),
+                is_final: true,
+                value: Value::Class(Rc::clone(inst_rc)),
+            },
+        );
+        for (parameter, value) in method_def.parameters.iter().zip(values) {
+            self.scopes.last_mut().unwrap().insert(
+                parameter.name.clone(),
+                Binding {
+                    variable_type: parameter.parameter_type.clone(),
+                    is_final: false,
+                    value,
+                },
+            );
+        }
+        let result = self.execute_statements(&method_def.body);
+        self.scopes.pop();
+        self.current_instance = previous_instance;
+        self.call_depth -= 1;
+        match result? {
+            Flow::Return(value) => Ok(value),
+            Flow::Normal if method_def.return_type == Type::Void => Ok(Value::Void),
+            Flow::Normal => Err(runtime_expr(
+                expression,
+                format!(
+                    "method '{method_name}' in class '{class_name}' finished without returning"
+                ),
+            )),
+            Flow::Break | Flow::Continue => {
+                Err(runtime_expr(expression, "loop control escaped a method"))
+            }
+        }
+    }
+
+    fn assign_field(
+        &mut self,
+        object: &Expr,
+        name: &str,
+        value_expr: &Expr,
+        whole: &Expr,
+    ) -> Result<Value, Diagnostic> {
+        let new_value = self.evaluate(value_expr)?;
+        let evaluated_object = self.evaluate(object)?;
+        if let Value::Class(inst) = evaluated_object {
+            let mut inst_ref = inst.borrow_mut();
+            if let Some((_, fval)) = inst_ref.fields.iter_mut().find(|(n, _)| n == name) {
+                *fval = new_value.clone();
+                return Ok(new_value);
+            }
+            return Err(runtime_expr(
+                whole,
+                format!("class '{}' has no field '{name}'", inst_ref.name),
+            ));
+        }
+
+        let mut steps = Vec::new();
+        let root = collect_lvalue_chain(object, &mut steps)
+            .ok_or_else(|| runtime_expr(object, "invalid field assignment target"))?;
+
+        enum EvaluatedStep<'a> {
+            Field(&'a str),
+            Index(Value),
+        }
+
+        let mut evaluated_steps = Vec::with_capacity(steps.len());
+        for step in steps {
+            match step {
+                ChainStep::Field(f) => evaluated_steps.push(EvaluatedStep::Field(f)),
+                ChainStep::Index(idx_expr) => {
+                    let val = self.evaluate(idx_expr)?;
+                    evaluated_steps.push(EvaluatedStep::Index(val));
+                }
+            }
+        }
+
+        match root {
+            LValueRoot::Var(var_name) => {
+                if let Some(binding) = self.get_mut(var_name) {
+                    let mut current = &mut binding.value;
+                    for step in &evaluated_steps {
+                        match step {
+                            EvaluatedStep::Field(f) => match current {
+                                Value::Struct { fields, .. } => {
+                                    let field_slot = fields
+                                        .iter_mut()
+                                        .find(|(n, _)| n == f)
+                                        .map(|(_, v)| v)
+                                        .ok_or_else(|| {
+                                            runtime_expr(
+                                                whole,
+                                                format!("struct has no field '{f}'"),
+                                            )
+                                        })?;
+                                    current = field_slot;
+                                }
+                                Value::Class(inst) => {
+                                    let mut inst_ref = inst.borrow_mut();
+                                    if let Some((_, fval)) =
+                                        inst_ref.fields.iter_mut().find(|(n, _)| n == f)
+                                    {
+                                        match fval {
+                                            Value::Struct { fields, .. } => {
+                                                let slot = fields
+                                                    .iter_mut()
+                                                    .find(|(n, _)| n == name)
+                                                    .map(|(_, v)| v)
+                                                    .ok_or_else(|| {
+                                                        runtime_expr(
+                                                            whole,
+                                                            format!("struct has no field '{name}'"),
+                                                        )
+                                                    })?;
+                                                *slot = new_value.clone();
+                                                return Ok(new_value);
+                                            }
+                                            _ => {
+                                                return Err(runtime_expr(
+                                                    whole,
+                                                    "property assignment requires a struct",
+                                                ));
+                                            }
+                                        }
+                                    }
+                                    return Err(runtime_expr(
+                                        whole,
+                                        format!("class '{}' has no field '{f}'", inst_ref.name),
+                                    ));
+                                }
+                                _ => {
+                                    return Err(runtime_expr(
+                                        whole,
+                                        "property access requires a struct or class",
+                                    ));
+                                }
+                            },
+                            EvaluatedStep::Index(key) => match current {
+                                Value::Array(values) => {
+                                    let idx = Self::to_usize(key, whole)?;
+                                    let len = values.len();
+                                    current = values.get_mut(idx).ok_or_else(|| {
+                                        runtime_expr(
+                                            whole,
+                                            format!(
+                                                "array index {idx} out of bounds for len {len}"
+                                            ),
+                                        )
+                                    })?;
+                                }
+                                _ => {
+                                    return Err(runtime_expr(
+                                        whole,
+                                        "index access requires an array",
+                                    ));
+                                }
+                            },
+                        }
+                    }
+                    match current {
+                        Value::Struct { fields, .. } => {
+                            let slot = fields
+                                .iter_mut()
+                                .find(|(n, _)| n == name)
+                                .map(|(_, v)| v)
+                                .ok_or_else(|| {
+                                runtime_expr(whole, format!("struct has no field '{name}'"))
+                            })?;
+                            *slot = new_value.clone();
+                            Ok(new_value)
+                        }
+                        _ => Err(runtime_expr(whole, "property assignment requires a struct")),
+                    }
+                } else if let Some(inst) = &self.current_instance {
+                    let mut inst_ref = inst.borrow_mut();
+                    if let Some((_, fval)) = inst_ref.fields.iter_mut().find(|(n, _)| n == var_name)
+                    {
+                        match fval {
+                            Value::Struct { fields, .. } => {
+                                let slot = fields
+                                    .iter_mut()
+                                    .find(|(n, _)| n == name)
+                                    .map(|(_, v)| v)
+                                    .ok_or_else(|| {
+                                        runtime_expr(whole, format!("struct has no field '{name}'"))
+                                    })?;
+                                *slot = new_value.clone();
+                                Ok(new_value)
+                            }
+                            _ => Err(runtime_expr(whole, "property assignment requires a struct")),
+                        }
+                    } else {
+                        Err(runtime_expr(
+                            whole,
+                            format!("undefined variable '{var_name}'"),
+                        ))
+                    }
+                } else {
+                    Err(runtime_expr(
+                        whole,
+                        format!("undefined variable '{var_name}'"),
+                    ))
+                }
+            }
+            LValueRoot::This => {
+                if let Some(inst) = &self.current_instance {
+                    let mut inst_ref = inst.borrow_mut();
+                    if let Some((_, fval)) = inst_ref.fields.iter_mut().find(|(n, _)| n == name) {
+                        *fval = new_value.clone();
+                        Ok(new_value)
+                    } else {
+                        Err(runtime_expr(
+                            whole,
+                            format!("class '{}' has no field '{name}'", inst_ref.name),
+                        ))
+                    }
+                } else {
+                    Err(runtime_expr(
+                        whole,
+                        "'this' is only valid inside class methods",
+                    ))
+                }
+            }
+        }
+    }
+}
+
+enum LValueRoot<'a> {
+    Var(&'a str),
+    This,
+}
+
+enum ChainStep<'a> {
+    Index(&'a Expr),
+    Field(&'a str),
+}
+
+fn collect_lvalue_chain<'a>(
+    expression: &'a Expr,
+    steps: &mut Vec<ChainStep<'a>>,
+) -> Option<LValueRoot<'a>> {
+    match &expression.kind {
+        ExprKind::Identifier(name) => Some(LValueRoot::Var(name.as_str())),
+        ExprKind::This => Some(LValueRoot::This),
+        ExprKind::Index { target, index } => {
+            let root = collect_lvalue_chain(target, steps)?;
+            steps.push(ChainStep::Index(index));
+            Some(root)
+        }
+        ExprKind::Get { object, name } => {
+            let root = collect_lvalue_chain(object, steps)?;
+            steps.push(ChainStep::Field(name.as_str()));
+            Some(root)
+        }
+        _ => None,
     }
 }
 

@@ -1,0 +1,53 @@
+// مدل داده‌ای خالص (Pure Data Model)
+// برای ذخیره و انتقال داده‌های ساده و بدون رفتار
+struct Point {
+    int x;
+    int y;
+}
+
+// مدل شیء و رفتار (Object and Behavior Model)
+// برای موجودیت‌هایی که وضعیت و متد دارند
+class User {
+    string name;
+    int age;
+
+    def introduce() {
+        print("سلام! من " + name + " هستم و " + to_string(age) + " سال دارم.");
+    }
+
+    def void birthday() {
+        age = age + 1;
+    }
+
+    def int get_age() {
+        return age;
+    }
+}
+
+// ۱. استفاده از struct
+Point p1 = Point(10, 20);
+print("مختصات نقطه:", p1.x, p1.y);
+
+// سمانتیک مقداری (Value Semantics): کپی مستقل
+Point p2 = p1;
+p2.x = 99;
+print("نقطه اصلی بعد از تغییر کپی:", p1.x); // همچنان ۱۰ است!
+print("نقطه کپی:", p2.x); // ۹۹
+
+// ۲. استفاده از class
+User u1 = User("طاها", 22);
+u1.introduce();
+
+u1.birthday();
+print("سن پس از تولد:", u1.get_age());
+
+// سمانتیک ارجاعی (Reference Semantics): اشتراک شیء
+User u2 = u1;
+u2.birthday();
+print("سن کاربر اصلی بعد از تغییر ارجاع دوم:", u1.get_age()); // ۲۴ شد!
+
+// ۳. ترکیب در ساختارها و آرایه‌ها
+User[] team = [User("طاها", 24), User("سارا", 20)];
+for user in team {
+    user.introduce();
+}

@@ -1,5 +1,11 @@
 use crate::ast::Type;
-use std::fmt;
+use std::{cell::RefCell, fmt, rc::Rc};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClassInstance {
+    pub name: String,
+    pub fields: Vec<(String, Value)>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -9,6 +15,11 @@ pub enum Value {
     String(String),
     Array(Vec<Value>),
     Map(Vec<(Value, Value)>),
+    Struct {
+        name: String,
+        fields: Vec<(String, Value)>,
+    },
+    Class(Rc<RefCell<ClassInstance>>),
     Void,
 }
 
@@ -37,6 +48,8 @@ impl Value {
                 };
                 Type::map(key_type, val_type)
             }
+            Self::Struct { name, .. } => Type::Custom(name.clone()),
+            Self::Class(inst) => Type::Custom(inst.borrow().name.clone()),
             Self::Void => Type::Void,
         }
     }
@@ -50,6 +63,8 @@ impl Value {
             (Type::Float, Value::Float(_)) => true,
             (Type::Bool, Value::Bool(_)) => true,
             (Type::String, Value::String(_)) => true,
+            (Type::Custom(exp_name), Value::Struct { name, .. }) => exp_name == name,
+            (Type::Custom(exp_name), Value::Class(inst)) => exp_name == &inst.borrow().name,
             (Type::Array(expected_elem), Value::Array(values)) => {
                 if values.is_empty() {
                     true
@@ -110,6 +125,38 @@ impl fmt::Display for Value {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
+            Self::Struct { name, fields } => {
+                if fields.is_empty() {
+                    write!(f, "{name} {{}}")
+                } else {
+                    write!(
+                        f,
+                        "{name} {{ {} }}",
+                        fields
+                            .iter()
+                            .map(|(k, v)| format!("{k}: {}", v.nested()))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                }
+            }
+            Self::Class(inst) => {
+                let inst = inst.borrow();
+                if inst.fields.is_empty() {
+                    write!(f, "{} {{}}", inst.name)
+                } else {
+                    write!(
+                        f,
+                        "{} {{ {} }}",
+                        inst.name,
+                        inst.fields
+                            .iter()
+                            .map(|(k, v)| format!("{k}: {}", v.nested()))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                }
+            }
             Self::Void => f.write_str("void"),
         }
     }

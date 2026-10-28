@@ -9,6 +9,7 @@ pub enum Type {
     String,
     Void,
     Any,
+    Custom(String),
     Array(Box<Type>),
     Map { key: Box<Type>, value: Box<Type> },
 }
@@ -28,6 +29,10 @@ impl Type {
     pub fn dict() -> Self {
         Self::map(Self::Any, Self::Any)
     }
+
+    pub fn custom(name: impl Into<String>) -> Self {
+        Self::Custom(name.into())
+    }
 }
 
 impl fmt::Display for Type {
@@ -39,6 +44,7 @@ impl fmt::Display for Type {
             Self::String => f.write_str("string"),
             Self::Void => f.write_str("void"),
             Self::Any => f.write_str("any"),
+            Self::Custom(name) => f.write_str(name),
             Self::Array(element) => write!(f, "{element}[]"),
             Self::Map { key, value } => write!(f, "map<{key}, {value}>"),
         }
@@ -114,7 +120,38 @@ pub enum ExprKind {
         target: Box<Expr>,
         index: Box<Expr>,
     },
+    Get {
+        object: Box<Expr>,
+        name: String,
+    },
+    Set {
+        object: Box<Expr>,
+        name: String,
+        value: Box<Expr>,
+    },
+    MethodCall {
+        object: Box<Expr>,
+        method: String,
+        arguments: Vec<Expr>,
+    },
+    This,
     Grouping(Box<Expr>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FieldDef {
+    pub field_type: Type,
+    pub name: String,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MethodDef {
+    pub return_type: Type,
+    pub name: String,
+    pub parameters: Vec<Parameter>,
+    pub body: Vec<Stmt>,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -168,6 +205,15 @@ pub enum StmtKind {
     Break,
     Continue,
     Return(Option<Expr>),
+    StructDeclaration {
+        name: String,
+        fields: Vec<FieldDef>,
+    },
+    ClassDeclaration {
+        name: String,
+        fields: Vec<FieldDef>,
+        methods: Vec<MethodDef>,
+    },
     Print {
         arguments: Vec<Expr>,
         separator: Option<Expr>,

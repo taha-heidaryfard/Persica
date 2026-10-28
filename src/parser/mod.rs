@@ -32,7 +32,7 @@ impl<'a> Parser<'a> {
     }
 
     pub(super) fn is_type_start(&self) -> bool {
-        matches!(
+        if matches!(
             self.peek().kind,
             TokenKind::Int
                 | TokenKind::Float
@@ -41,7 +41,24 @@ impl<'a> Parser<'a> {
                 | TokenKind::Map
                 | TokenKind::Dict
                 | TokenKind::Any
-        )
+        ) {
+            return true;
+        }
+        self.is_custom_type_declaration()
+    }
+
+    pub(super) fn is_custom_type_declaration(&self) -> bool {
+        if self.peek().kind != TokenKind::Identifier {
+            return false;
+        }
+        let mut idx = self.current + 1;
+        while idx + 1 < self.tokens.len()
+            && self.tokens[idx].kind == TokenKind::LeftBracket
+            && self.tokens[idx + 1].kind == TokenKind::RightBracket
+        {
+            idx += 2;
+        }
+        idx < self.tokens.len() && self.tokens[idx].kind == TokenKind::Identifier
     }
 
     pub(super) fn matches(&mut self, kinds: &[TokenKind]) -> bool {

@@ -121,3 +121,55 @@ def void log_status(bool ok) {
     print("سیستم فعال است");
 }
 ```
+
+---
+
+## ۶. ساختارها و کلاس‌ها (`struct` و `class`) — نسخه 0.9.0
+
+### ساختار (`struct` — مدل داده‌ای خالص)
+مدل مقداری (Value Semantics) برای تجمیع داده‌های مرتبط و بدون متد:
+```persica
+struct Point {
+    int x;
+    int y;
+}
+
+Point p1 = Point(10, 20);
+p1.x = 42;
+
+// کپی مقداری مستقل:
+Point p2 = p1;
+p2.x = 99; // تغییری در p1 ایجاد نمی‌کند!
+print(p1.x); // 42
+```
+
+### کلاس (`class` — مدل شیء و رفتار)
+مدل ارجاعی (Reference Semantics) برای موجودیت‌هایی که متد و وضعیت مشترک دارند:
+```persica
+class User {
+    string name;
+    int age;
+
+    def introduce() {
+        print("سلام! من " + name + " هستم.");
+    }
+
+    def void birthday() {
+        this.age = this.age + 1;
+    }
+
+    def int get_age() {
+        return age;
+    }
+}
+
+User u1 = User("طاها", 22);
+u1.introduce();
+u1.birthday();
+print(u1.get_age()); // 23
+
+// ارجاع مشترک:
+User u2 = u1;
+u2.birthday();
+print(u1.get_age()); // 24
+```

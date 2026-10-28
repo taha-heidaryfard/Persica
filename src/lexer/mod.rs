@@ -59,6 +59,7 @@ impl<'a> Lexer<'a> {
             ',' => self.simple(TokenKind::Comma, start, line, column),
             ';' => self.simple(TokenKind::Semicolon, start, line, column),
             ':' => self.simple(TokenKind::Colon, start, line, column),
+            '.' => self.simple(TokenKind::Dot, start, line, column),
             '+' => {
                 let kind = if self.match_char('+') {
                     TokenKind::Increment
@@ -191,6 +192,9 @@ impl<'a> Lexer<'a> {
             "any" => TokenKind::Any,
             "map" => TokenKind::Map,
             "dict" => TokenKind::Dict,
+            "struct" => TokenKind::Struct,
+            "class" => TokenKind::Class,
+            "this" => TokenKind::This,
             "final" => TokenKind::Final,
             "def" => TokenKind::Def,
             "return" => TokenKind::Return,

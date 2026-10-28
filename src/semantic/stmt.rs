@@ -78,6 +78,69 @@ impl Analyzer {
                     ));
                 }
             }
+            StmtKind::StructDeclaration { .. } => {
+                if self.scopes.len() != 1 {
+                    return Err(error(
+                        statement,
+                        "structs may only be declared at the top level",
+                    ));
+                }
+            }
+            StmtKind::ClassDeclaration { name, methods, .. } => {
+                if self.scopes.len() != 1 {
+                    return Err(error(
+                        statement,
+                        "classes may only be declared at the top level",
+                    ));
+                }
+                for method in methods {
+                    self.push_scope();
+                    self.scopes.last_mut().unwrap().insert(
+                        "this".to_string(),
+                        VariableSymbol {
+                            variable_type: Type::Custom(name.clone()),
+                            is_final: true,
+                        },
+                    );
+                    for parameter in &method.parameters {
+                        let scope = self.scopes.last_mut().unwrap();
+                        if scope
+                            .insert(
+                                parameter.name.clone(),
+                                VariableSymbol {
+                                    variable_type: parameter.parameter_type.clone(),
+                                    is_final: false,
+                                },
+                            )
+                            .is_some()
+                        {
+                            self.pop_scope();
+                            return Err(Diagnostic::new(
+                                Phase::Semantic,
+                                format!("duplicate parameter '{}'", parameter.name),
+                                parameter.span,
+                            ));
+                        }
+                    }
+                    let previous_class = self.current_class.replace(name.clone());
+                    let previous_return = self.current_return.replace(method.return_type.clone());
+                    let result = method.body.iter().try_for_each(|item| self.statement(item));
+                    self.current_return = previous_return;
+                    self.current_class = previous_class;
+                    self.pop_scope();
+                    result?;
+                    if method.return_type != Type::Void && !statements_return(&method.body) {
+                        return Err(Diagnostic::new(
+                            Phase::Semantic,
+                            format!(
+                                "method '{}' must return a {} value on every path",
+                                method.name, method.return_type
+                            ),
+                            method.span,
+                        ));
+                    }
+                }
+            }
             StmtKind::Block(statements) => {
                 self.push_scope();
                 let result = statements.iter().try_for_each(|item| self.statement(item));

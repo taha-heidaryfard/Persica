@@ -2,6 +2,7 @@ use crate::{
     ast::{Expr, Stmt, Type},
     diagnostic::{Diagnostic, Phase},
 };
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub(super) struct FunctionSignature {
@@ -13,6 +14,17 @@ pub(super) struct FunctionSignature {
 pub(super) struct VariableSymbol {
     pub(super) variable_type: Type,
     pub(super) is_final: bool,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct StructInfo {
+    pub(super) fields: Vec<(String, Type)>,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct ClassInfo {
+    pub(super) fields: Vec<(String, Type)>,
+    pub(super) methods: HashMap<String, FunctionSignature>,
 }
 
 pub(super) fn require_arity(

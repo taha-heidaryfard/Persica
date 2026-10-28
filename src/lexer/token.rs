@@ -14,6 +14,9 @@ pub enum TokenKind {
     Any,
     Map,
     Dict,
+    Struct,
+    Class,
+    This,
     Final,
     Def,
     Return,
@@ -58,6 +61,7 @@ pub enum TokenKind {
     Comma,
     Semicolon,
     Colon,
+    Dot,
     Eof,
 }
 

@@ -55,6 +55,14 @@ impl<'a> Parser<'a> {
                 },
                 span,
             }),
+            ExprKind::Get { object, name } => Ok(Expr {
+                kind: ExprKind::Set {
+                    object,
+                    name,
+                    value: Box::new(value),
+                },
+                span,
+            }),
             _ => Err(Diagnostic::new(
                 Phase::Parser,
                 "invalid assignment target",
@@ -198,6 +206,49 @@ impl<'a> Parser<'a> {
                     },
                     span,
                 };
+            } else if self.matches(&[TokenKind::Dot]) {
+                let name_token = self
+                    .consume(
+                        TokenKind::Identifier,
+                        "expected property or method name after '.'",
+                    )?
+                    .clone();
+                if self.matches(&[TokenKind::LeftParen]) {
+                    let mut arguments = Vec::new();
+                    if !self.check(TokenKind::RightParen) {
+                        loop {
+                            if arguments.len() >= 255 {
+                                return Err(self.error_here(
+                                    "a method call cannot have more than 255 arguments",
+                                ));
+                            }
+                            arguments.push(self.expression()?);
+                            if !self.matches(&[TokenKind::Comma]) {
+                                break;
+                            }
+                        }
+                    }
+                    let end = self
+                        .consume(TokenKind::RightParen, "expected ')' after method arguments")?
+                        .span;
+                    expression = Expr {
+                        span: expression.span.merge(end),
+                        kind: ExprKind::MethodCall {
+                            object: Box::new(expression),
+                            method: name_token.lexeme,
+                            arguments,
+                        },
+                    };
+                } else {
+                    let span = expression.span.merge(name_token.span);
+                    expression = Expr {
+                        kind: ExprKind::Get {
+                            object: Box::new(expression),
+                            name: name_token.lexeme,
+                        },
+                        span,
+                    };
+                }
             } else if self.matches(&[TokenKind::Increment, TokenKind::Decrement]) {
                 let op_token = self.previous().clone();
                 let op = if op_token.kind == TokenKind::Increment {
@@ -256,6 +307,13 @@ impl<'a> Parser<'a> {
                 Literal::Bool(token.kind == TokenKind::True),
                 token.span,
             ));
+        }
+        if self.matches(&[TokenKind::This]) {
+            let token = self.previous().clone();
+            return Ok(Expr {
+                kind: ExprKind::This,
+                span: token.span,
+            });
         }
         if self.matches(&[TokenKind::Identifier]) {
             let token = self.previous().clone();

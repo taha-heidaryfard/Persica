@@ -5,13 +5,16 @@ mod value;
 pub use value::Value;
 
 use crate::{
-    ast::{Expr, Parameter, Program, Stmt, StmtKind, Type},
+    ast::{Expr, FieldDef, MethodDef, Parameter, Program, Stmt, StmtKind, Type},
     diagnostic::{Diagnostic, Phase},
 };
 use std::{
+    cell::RefCell,
     collections::{HashMap, VecDeque},
     io::{self, Write},
+    rc::Rc,
 };
+use value::ClassInstance;
 
 #[derive(Debug, Clone)]
 pub(super) struct Binding {
@@ -25,6 +28,17 @@ pub(super) struct Function {
     pub(super) return_type: Type,
     pub(super) parameters: Vec<Parameter>,
     pub(super) body: Vec<Stmt>,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct StructDef {
+    pub(super) fields: Vec<FieldDef>,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct ClassDef {
+    pub(super) fields: Vec<FieldDef>,
+    pub(super) methods: HashMap<String, MethodDef>,
 }
 
 pub(super) enum Flow {
@@ -46,6 +60,9 @@ pub(super) enum Input {
 pub struct Interpreter {
     pub(super) scopes: Vec<HashMap<String, Binding>>,
     pub(super) functions: HashMap<String, Function>,
+    pub(super) structs: HashMap<String, StructDef>,
+    pub(super) classes: HashMap<String, ClassDef>,
+    pub(super) current_instance: Option<Rc<RefCell<ClassInstance>>>,
     pub(super) output: String,
     pub(super) print_calls: Vec<String>,
     pub(super) call_depth: usize,
@@ -99,25 +116,57 @@ impl Interpreter {
 
     fn execute_program(&mut self, program: &Program) -> Result<(), Diagnostic> {
         for statement in program {
-            if let StmtKind::FunctionDeclaration {
-                return_type,
-                name,
-                parameters,
-                body,
-            } = &statement.kind
-            {
-                self.functions.insert(
-                    name.clone(),
-                    Function {
-                        return_type: return_type.clone(),
-                        parameters: parameters.clone(),
-                        body: body.clone(),
-                    },
-                );
+            match &statement.kind {
+                StmtKind::FunctionDeclaration {
+                    return_type,
+                    name,
+                    parameters,
+                    body,
+                } => {
+                    self.functions.insert(
+                        name.clone(),
+                        Function {
+                            return_type: return_type.clone(),
+                            parameters: parameters.clone(),
+                            body: body.clone(),
+                        },
+                    );
+                }
+                StmtKind::StructDeclaration { name, fields } => {
+                    self.structs.insert(
+                        name.clone(),
+                        StructDef {
+                            fields: fields.clone(),
+                        },
+                    );
+                }
+                StmtKind::ClassDeclaration {
+                    name,
+                    fields,
+                    methods,
+                } => {
+                    let mut method_map = HashMap::new();
+                    for method in methods {
+                        method_map.insert(method.name.clone(), method.clone());
+                    }
+                    self.classes.insert(
+                        name.clone(),
+                        ClassDef {
+                            fields: fields.clone(),
+                            methods: method_map,
+                        },
+                    );
+                }
+                _ => {}
             }
         }
         for statement in program {
-            if !matches!(statement.kind, StmtKind::FunctionDeclaration { .. }) {
+            if !matches!(
+                statement.kind,
+                StmtKind::FunctionDeclaration { .. }
+                    | StmtKind::StructDeclaration { .. }
+                    | StmtKind::ClassDeclaration { .. }
+            ) {
                 match self.execute(statement)? {
                     Flow::Normal => {}
                     _ => {

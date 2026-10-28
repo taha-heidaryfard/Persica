@@ -1,6 +1,6 @@
 use super::Parser;
 use crate::{
-    ast::{Parameter, Stmt, StmtKind, Type},
+    ast::{FieldDef, MethodDef, Parameter, Stmt, StmtKind, Type},
     diagnostic::{Diagnostic, Phase},
     lexer::TokenKind,
     source::Span,
@@ -8,6 +8,12 @@ use crate::{
 
 impl<'a> Parser<'a> {
     pub(super) fn declaration(&mut self) -> Result<Stmt, Diagnostic> {
+        if self.matches(&[TokenKind::Struct]) {
+            return self.struct_declaration(self.previous().span);
+        }
+        if self.matches(&[TokenKind::Class]) {
+            return self.class_declaration(self.previous().span);
+        }
         if self.matches(&[TokenKind::Def]) {
             return self.function_declaration(self.previous().span);
         }
@@ -47,10 +53,18 @@ impl<'a> Parser<'a> {
     }
 
     fn function_declaration(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
-        let return_type = self.parse_type(true)?;
-        let name = self
-            .consume(TokenKind::Identifier, "expected a function name")?
-            .clone();
+        let (return_type, name) = if self.peek().kind == TokenKind::Identifier
+            && self.peek_next().kind == TokenKind::LeftParen
+        {
+            let name_tok = self.advance().clone();
+            (Type::Void, name_tok)
+        } else {
+            let return_type = self.parse_type(true)?;
+            let name_tok = self
+                .consume(TokenKind::Identifier, "expected a function name")?
+                .clone();
+            (return_type, name_tok)
+        };
         self.consume(TokenKind::LeftParen, "expected '(' after the function name")?;
         let mut parameters = Vec::new();
         if !self.check(TokenKind::RightParen) {
@@ -90,6 +104,134 @@ impl<'a> Parser<'a> {
         })
     }
 
+    fn struct_declaration(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
+        let name = self
+            .consume(TokenKind::Identifier, "expected a struct name")?
+            .clone();
+        self.consume(TokenKind::LeftBrace, "expected '{' after struct name")?;
+        let mut fields = Vec::new();
+        while !self.check(TokenKind::RightBrace) && !self.is_at_end() {
+            if self.check(TokenKind::Def) {
+                return Err(Diagnostic::new(
+                    Phase::Parser,
+                    "structs cannot contain methods; use 'class' instead",
+                    self.peek().span,
+                ));
+            }
+            let field_start = self.peek().span;
+            let field_type = self.parse_type(false)?;
+            let field_name = self
+                .consume(TokenKind::Identifier, "expected a field name")?
+                .clone();
+            if !self.matches(&[TokenKind::Semicolon, TokenKind::Comma]) {
+                self.consume(TokenKind::Semicolon, "expected ';' after field declaration")?;
+            }
+            fields.push(FieldDef {
+                field_type,
+                name: field_name.lexeme,
+                span: field_start.merge(field_name.span),
+            });
+        }
+        let end = self
+            .consume(TokenKind::RightBrace, "expected '}' after struct body")?
+            .span;
+        Ok(Stmt {
+            kind: StmtKind::StructDeclaration {
+                name: name.lexeme,
+                fields,
+            },
+            span: start.merge(end),
+        })
+    }
+
+    fn class_declaration(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
+        let name = self
+            .consume(TokenKind::Identifier, "expected a class name")?
+            .clone();
+        self.consume(TokenKind::LeftBrace, "expected '{' after class name")?;
+        let mut fields = Vec::new();
+        let mut methods = Vec::new();
+        while !self.check(TokenKind::RightBrace) && !self.is_at_end() {
+            if self.matches(&[TokenKind::Def]) {
+                let method_start = self.previous().span;
+                let method = self.method_declaration(method_start)?;
+                methods.push(method);
+            } else {
+                let field_start = self.peek().span;
+                let field_type = self.parse_type(false)?;
+                let field_name = self
+                    .consume(TokenKind::Identifier, "expected a field name")?
+                    .clone();
+                if !self.matches(&[TokenKind::Semicolon, TokenKind::Comma]) {
+                    self.consume(TokenKind::Semicolon, "expected ';' after field declaration")?;
+                }
+                fields.push(FieldDef {
+                    field_type,
+                    name: field_name.lexeme,
+                    span: field_start.merge(field_name.span),
+                });
+            }
+        }
+        let end = self
+            .consume(TokenKind::RightBrace, "expected '}' after class body")?
+            .span;
+        Ok(Stmt {
+            kind: StmtKind::ClassDeclaration {
+                name: name.lexeme,
+                fields,
+                methods,
+            },
+            span: start.merge(end),
+        })
+    }
+
+    fn method_declaration(&mut self, start: Span) -> Result<MethodDef, Diagnostic> {
+        let (return_type, name) = if self.peek().kind == TokenKind::Identifier
+            && self.peek_next().kind == TokenKind::LeftParen
+        {
+            let name_tok = self.advance().clone();
+            (Type::Void, name_tok)
+        } else {
+            let return_type = self.parse_type(true)?;
+            let name_tok = self
+                .consume(TokenKind::Identifier, "expected a method name")?
+                .clone();
+            (return_type, name_tok)
+        };
+        self.consume(TokenKind::LeftParen, "expected '(' after the method name")?;
+        let mut parameters = Vec::new();
+        if !self.check(TokenKind::RightParen) {
+            loop {
+                if parameters.len() >= 255 {
+                    return Err(self.error_here("a method cannot have more than 255 parameters"));
+                }
+                let parameter_start = self.peek().span;
+                let parameter_type = self.parse_type(false)?;
+                let parameter_name = self
+                    .consume(TokenKind::Identifier, "expected a parameter name")?
+                    .clone();
+                parameters.push(Parameter {
+                    parameter_type,
+                    name: parameter_name.lexeme,
+                    span: parameter_start.merge(parameter_name.span),
+                });
+                if !self.matches(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenKind::RightParen, "expected ')' after the parameters")?;
+        self.consume(TokenKind::LeftBrace, "expected '{' before the method body")?;
+        let (body, end) = self.block_contents()?;
+        Ok(MethodDef {
+            return_type,
+            name: name.lexeme,
+            parameters,
+            body,
+            span: start.merge(end),
+        })
+    }
+
     fn parse_type(&mut self, allow_void: bool) -> Result<Type, Diagnostic> {
         let token = self.advance().clone();
         let mut value = match token.kind {
@@ -100,6 +242,7 @@ impl<'a> Parser<'a> {
             TokenKind::Void if allow_void => Type::Void,
             TokenKind::Any => Type::Any,
             TokenKind::Dict => Type::dict(),
+            TokenKind::Identifier => Type::Custom(token.lexeme),
             TokenKind::Map => {
                 self.consume(TokenKind::Less, "expected '<' after 'map'")?;
                 let key = self.parse_type(false)?;

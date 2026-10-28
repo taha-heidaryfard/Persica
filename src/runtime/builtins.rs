@@ -16,6 +16,38 @@ impl Interpreter {
         if self.functions.contains_key(callee) {
             return self.call_user_function(callee, values, expression);
         }
+        if let Some(struct_def) = self.structs.get(callee).cloned() {
+            let mut fields = Vec::new();
+            for (field_def, val) in struct_def.fields.iter().zip(values) {
+                fields.push((field_def.name.clone(), val));
+            }
+            return Ok(Value::Struct {
+                name: callee.to_string(),
+                fields,
+            });
+        }
+        if let Some(class_def) = self.classes.get(callee).cloned() {
+            let mut fields = Vec::new();
+            for (field_def, val) in class_def.fields.iter().zip(values) {
+                fields.push((field_def.name.clone(), val));
+            }
+            let instance = super::value::ClassInstance {
+                name: callee.to_string(),
+                fields,
+            };
+            return Ok(Value::Class(std::rc::Rc::new(std::cell::RefCell::new(
+                instance,
+            ))));
+        }
+        if let Some(inst) = &self.current_instance {
+            let class_name = inst.borrow().name.clone();
+            if let Some(class_def) = self.classes.get(&class_name)
+                && class_def.methods.contains_key(callee)
+            {
+                let inst_rc = std::rc::Rc::clone(inst);
+                return self.call_class_method(&inst_rc, callee, values, expression);
+            }
+        }
         if let Some(builtin) = crate::builtins::find_builtin(callee) {
             return (builtin.handler)(&values, expression);
         }
