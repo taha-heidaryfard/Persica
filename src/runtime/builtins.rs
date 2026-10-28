@@ -13,6 +13,12 @@ impl Interpreter {
             .iter()
             .map(|argument| self.evaluate(argument))
             .collect::<Result<Vec<_>, _>>()?;
+        if self.functions.contains_key(callee) {
+            return self.call_user_function(callee, values, expression);
+        }
+        if let Some(builtin) = crate::builtins::find_builtin(callee) {
+            return (builtin.handler)(&values, expression);
+        }
         match callee {
             "read_line" | "input" => self.read_line(values.first(), expression),
             "len" => match &values[0] {

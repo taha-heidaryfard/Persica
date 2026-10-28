@@ -1,0 +1,46 @@
+// Persica Builtin Registry Gallery
+// نمایش بیش از ۱۰۰ تابع کاربردی رجیستری توکار
+
+print("=== ۱. ریاضیات، مثلثات و تئوری اعداد ===");
+print("عدد پی:", pi());
+print("عدد نپر (e):", e());
+print("سینوس ۹۰ درجه:", sin(deg_to_rad(90.0)));
+print("کسینوس ۰:", cos(0.0));
+print("ب.م.م ۴۸ و ۱۸:", gcd(48, 18));
+print("ک.م.م ۱۲ و ۱۵:", lcm(12, 15));
+print("فاکتوریل ۵:", factorial(5));
+print("آیا ۱۷ اول است؟", is_prime(17));
+print("عدد اول بعد از ۱۴:", next_prime(14));
+print("پایه ۱۶ عدد ۲۵۵:", to_hex(255));
+print("پایه ۲ عدد ۱۰:", to_bin(10));
+
+print("\n=== ۲. کار با رشته‌ها و متن ===");
+print(capitalize("persica"));
+print(title_case("persica modern programming language"));
+print("تراز به چپ:", pad_left("42", 6, "0"));
+print("وسط‌چین:", center("persica", 15, "-"));
+print("کد کاراکتر A:", code_point("A"));
+print("کاراکتر از کد ۶۵:", from_code_point(65));
+print("فاصله لون‌اشتاین kitten و sitting:", levenshtein("kitten", "sitting"));
+
+print("\n=== ۳. ابزارهای آرایه ===");
+int[] numbers = [10, 20, 30, 40, 50];
+print("عنصر اول:", first(numbers));
+print("عنصر آخر:", last(numbers));
+print("تعداد ۳ تای اول:", len(take(numbers, 3)));
+print("حذف ۳ تای اول:", len(drop(numbers, 3)));
+
+int[] dupes = [1, 2, 2, 3, 1, 4];
+int[] unique = unique_int(dupes);
+print("عناصر یکتای [1, 2, 2, 3, 1, 4]:", len(unique));
+
+int[][] chunks = chunk_int([1, 2, 3, 4, 5], 2);
+print("تعداد تکه‌ها با اندازه ۲:", len(chunks));
+
+print("\n=== ۴. آمار و محاسبات برداری ===");
+print("حاصل‌ضرب آرایه [1, 2, 3, 4]:", product_int([1, 2, 3, 4]));
+print("میانگین هندسی [2.0, 8.0]:", geometric_mean([2.0, 8.0]));
+print("میانگین همساز [2.0, 6.0]:", harmonic_mean([2.0, 6.0]));
+print("درون‌یابی خطی (lerp 10 -> 20 با 0.5):", lerp(10.0, 20.0, 0.5));
+print("فاصله دو نقطه‌ای (0,0) تا (3,4):", distance_2d(0.0, 0.0, 3.0, 4.0));
+print("نمره استاندارد Z-score:", z_score(15.0, 10.0, 2.5));

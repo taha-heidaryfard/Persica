@@ -62,6 +62,28 @@ impl Analyzer {
         arguments: &[Expr],
         expression: &Expr,
     ) -> Result<Type, Diagnostic> {
+        if let Some(signature) = self.functions.get(callee).cloned() {
+            if signature.parameters.len() != arguments.len() {
+                return Err(error_expr(
+                    expression,
+                    format!(
+                        "function '{callee}' expects {} arguments, found {}",
+                        signature.parameters.len(),
+                        arguments.len()
+                    ),
+                ));
+            }
+            for (argument, expected) in arguments.iter().zip(&signature.parameters) {
+                let actual = self.expression_type_as(argument, expected)?;
+                self.require_type(expected, &actual, argument)?;
+            }
+            return Ok(signature.return_type);
+        }
+
+        if let Some(builtin) = crate::builtins::find_builtin(callee) {
+            return self.check_registry_builtin(builtin, arguments, expression);
+        }
+
         match callee {
             "read_line" | "input" => {
                 if arguments.len() > 1 {
@@ -359,28 +381,111 @@ impl Analyzer {
                 self.require_type(element, &actual, &arguments[1])?;
                 Ok(array_type)
             }
-            _ => {
-                let Some(signature) = self.functions.get(callee).cloned() else {
-                    return Err(error_expr(
-                        expression,
-                        format!("undefined function '{callee}'"),
-                    ));
+            _ => Err(error_expr(
+                expression,
+                format!("undefined function '{callee}'"),
+            )),
+        }
+    }
+
+    fn check_registry_builtin(
+        &mut self,
+        builtin: &crate::builtins::Builtin,
+        arguments: &[Expr],
+        expression: &Expr,
+    ) -> Result<Type, Diagnostic> {
+        if arguments.len() != builtin.params.len() {
+            return Err(error_expr(
+                expression,
+                format!(
+                    "{} expects {} argument{}, found {}",
+                    builtin.name,
+                    builtin.params.len(),
+                    if builtin.params.len() == 1 { "" } else { "s" },
+                    arguments.len()
+                ),
+            ));
+        }
+        let mut arg_types = Vec::with_capacity(arguments.len());
+        for (arg, param) in arguments.iter().zip(builtin.params) {
+            let actual = self.expression_type(arg)?;
+            match param {
+                crate::builtins::ParamType::Int => {
+                    self.require_type(&Type::Int, &actual, arg)?;
+                }
+                crate::builtins::ParamType::Float => {
+                    self.require_type(&Type::Float, &actual, arg)?;
+                }
+                crate::builtins::ParamType::Bool => {
+                    self.require_type(&Type::Bool, &actual, arg)?;
+                }
+                crate::builtins::ParamType::String => {
+                    self.require_type(&Type::String, &actual, arg)?;
+                }
+                crate::builtins::ParamType::IntArray => {
+                    self.require_type(&Type::array(Type::Int), &actual, arg)?;
+                }
+                crate::builtins::ParamType::FloatArray => {
+                    self.require_type(&Type::array(Type::Float), &actual, arg)?;
+                }
+                crate::builtins::ParamType::StringArray => {
+                    self.require_type(&Type::array(Type::String), &actual, arg)?;
+                }
+                crate::builtins::ParamType::BoolArray => {
+                    self.require_type(&Type::array(Type::Bool), &actual, arg)?;
+                }
+                crate::builtins::ParamType::Int2DArray => {
+                    self.require_type(&Type::array(Type::array(Type::Int)), &actual, arg)?;
+                }
+                crate::builtins::ParamType::Float2DArray => {
+                    self.require_type(&Type::array(Type::array(Type::Float)), &actual, arg)?;
+                }
+                crate::builtins::ParamType::String2DArray => {
+                    self.require_type(&Type::array(Type::array(Type::String)), &actual, arg)?;
+                }
+                crate::builtins::ParamType::AnyArray => {
+                    if !matches!(actual, Type::Array(_)) {
+                        return Err(error_expr(
+                            arg,
+                            format!("{} expects an array, found {actual}", builtin.name),
+                        ));
+                    }
+                }
+                crate::builtins::ParamType::NumericArray => {
+                    if !matches!(&actual, Type::Array(elem) if matches!(elem.as_ref(), Type::Int | Type::Float))
+                    {
+                        return Err(error_expr(
+                            arg,
+                            format!("{} expects a numeric array, found {actual}", builtin.name),
+                        ));
+                    }
+                }
+            }
+            arg_types.push(actual);
+        }
+        match &builtin.return_type {
+            crate::builtins::ReturnType::Int => Ok(Type::Int),
+            crate::builtins::ReturnType::Float => Ok(Type::Float),
+            crate::builtins::ReturnType::Bool => Ok(Type::Bool),
+            crate::builtins::ReturnType::String => Ok(Type::String),
+            crate::builtins::ReturnType::IntArray => Ok(Type::array(Type::Int)),
+            crate::builtins::ReturnType::FloatArray => Ok(Type::array(Type::Float)),
+            crate::builtins::ReturnType::StringArray => Ok(Type::array(Type::String)),
+            crate::builtins::ReturnType::BoolArray => Ok(Type::array(Type::Bool)),
+            crate::builtins::ReturnType::Int2DArray => Ok(Type::array(Type::array(Type::Int))),
+            crate::builtins::ReturnType::Float2DArray => Ok(Type::array(Type::array(Type::Float))),
+            crate::builtins::ReturnType::String2DArray => {
+                Ok(Type::array(Type::array(Type::String)))
+            }
+            crate::builtins::ReturnType::SameAsArg(idx) => Ok(arg_types[*idx].clone()),
+            crate::builtins::ReturnType::ElementOfArg(idx) => {
+                let Type::Array(elem) = &arg_types[*idx] else {
+                    unreachable!()
                 };
-                if signature.parameters.len() != arguments.len() {
-                    return Err(error_expr(
-                        expression,
-                        format!(
-                            "function '{callee}' expects {} arguments, found {}",
-                            signature.parameters.len(),
-                            arguments.len()
-                        ),
-                    ));
-                }
-                for (argument, expected) in arguments.iter().zip(&signature.parameters) {
-                    let actual = self.expression_type_as(argument, expected)?;
-                    self.require_type(expected, &actual, argument)?;
-                }
-                Ok(signature.return_type)
+                Ok((**elem).clone())
+            }
+            crate::builtins::ReturnType::ArrayOfArg(idx) => {
+                Ok(Type::array(arg_types[*idx].clone()))
             }
         }
     }

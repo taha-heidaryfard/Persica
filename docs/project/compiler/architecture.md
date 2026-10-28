@@ -52,6 +52,13 @@ CLI مستقیماً از `compile` استفاده می‌کند تا بتوان
 
 Interpreter tree-walk است و AST را مستقیم اجرا می‌کند. برای workload بزرگ، مرحله‌ی آینده تبدیل AST به bytecode و اجرای VM است. module loader، persistent session و stack trace چندفریمی هنوز وجود ندارند.
 
+## سیستم رجیستری توکار (Built-in Registry)
+
+ماژول `src/builtins` رجیستری توکار توابع خالص (Pure Functions) است:
+- ساختار `Builtin` شامل نام، آرایه‌ی نوع پارامترها (`ParamType`)، نوع خروجی (`ReturnType`) و `handler` تابعی است.
+- توسط `LazyLock<HashMap<&'static str, Builtin>>` کش شده و توابع به صورت ماژولار در زیرفایل‌های `math.rs`, `strings.rs`, `arrays.rs`, `stats.rs` تفکیک شده‌اند.
+- سیستم Type Checking خودکار در `src/semantic/builtins.rs` و اجرای مستقیم در `src/runtime/builtins.rs` با اولویت‌بندی صحیح تعبیه شده است: توابع تعریف‌شده توسط کاربر اولویت اول را داشته و می‌توانند توابع رجیستری را Shadow کنند؛ در صورت عدم تعریف، تابع رجیستری اجرا می‌شود.
+
 ## آینده: کتابخانه‌ی استاندارد در خود Persica (Prelude)
 
 برای ساده‌سازی توسعه‌ی کتابخانه استاندارد و اجتناب از تعریف دستی توابع سطح بالا در کد Rust، در نسخه‌های آینده توابع کمکی با خود زبان Persica در فایلی نظیر `src/stdlib/prelude.persi` نوشته شده و به صورت توکار (`include_str!`) توسط مفسر در زمان آغاز به عنوان Prelude اجرا و ثبت خواهند شد.
