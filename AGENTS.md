@@ -4,6 +4,7 @@
 
 ## ابتدا بخوان
 
+- مخزن دانش و حافظه پایدار آبسیدین: `Agent Memory/Persica/00 - Index.md`
 - راهنمای اصلی agent: `docs/agents/README.md`
 - نقشه‌ی فایل‌ها: `docs/agents/architecture-map.md`
 - invariantها: `docs/agents/coding-rules.md`
