@@ -79,6 +79,7 @@ pub struct Interpreter {
     pub(super) call_depth: usize,
     pub(super) input: Input,
     pub(super) stream_output: bool,
+    pub(super) prelude_loaded: bool,
 }
 
 impl Interpreter {
@@ -87,6 +88,15 @@ impl Interpreter {
             scopes: vec![HashMap::new()],
             ..Self::default()
         }
+    }
+
+    pub fn load_prelude(&mut self) -> Result<(), Diagnostic> {
+        if self.prelude_loaded {
+            return Ok(());
+        }
+        self.prelude_loaded = true;
+        let prelude = crate::stdlib::get_prelude_program();
+        self.execute_program(prelude)
     }
 
     pub fn with_stdin() -> Self {
@@ -116,11 +126,13 @@ impl Interpreter {
     }
 
     pub fn interpret(mut self, program: &Program) -> Result<Vec<String>, Diagnostic> {
+        self.load_prelude()?;
         self.execute_program(program)?;
         Ok(self.print_calls)
     }
 
     pub fn interpret_text(mut self, program: &Program) -> Result<String, Diagnostic> {
+        self.load_prelude()?;
         self.execute_program(program)?;
         Ok(self.output)
     }

@@ -1,0 +1,76 @@
+// Persica Standard Library: Algorithms
+// Self-hosted in 100% pure Persica
+
+def any[][] zip(any[] a, any[] b) {
+    int count = len(a);
+    if len(b) < count {
+        count = len(b);
+    }
+    any[][] result = [];
+    for (int i = 0; i < count; i++) {
+        any[] pair = [a[i], b[i]];
+        result = append(result, pair);
+    }
+    return result;
+}
+
+def any[][] chunks(any[] arr, int size) {
+    any[][] result = [];
+    if size <= 0 || len(arr) == 0 {
+        return result;
+    }
+    int i = 0;
+    while i < len(arr) {
+        int end_idx = i + size;
+        if end_idx > len(arr) {
+            end_idx = len(arr);
+        }
+        result = append(result, slice(arr, i, end_idx));
+        i += size;
+    }
+    return result;
+}
+
+def any[] flatten(any[][] arr) {
+    any[] result = [];
+    for sub in arr {
+        for item in sub {
+            result = append(result, item);
+        }
+    }
+    return result;
+}
+
+def int binary_search(int[] arr, int target) {
+    int low = 0;
+    int high = len(arr) - 1;
+    while low <= high {
+        int mid = low + (high - low) / 2;
+        if arr[mid] == target {
+            return mid;
+        }
+        if arr[mid] < target {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return -1;
+}
+
+def int linear_search(any[] arr, any target) {
+    for (int i = 0; i < len(arr); i++) {
+        if arr[i] == target {
+            return i;
+        }
+    }
+    return -1;
+}
+
+def any[] fill(int count, any value) {
+    any[] result = [];
+    for (int i = 0; i < count; i++) {
+        result = append(result, value);
+    }
+    return result;
+}

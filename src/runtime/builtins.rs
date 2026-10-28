@@ -18,8 +18,17 @@ impl Interpreter {
         }
         if let Some(struct_def) = self.structs.get(callee).cloned() {
             let mut fields = Vec::new();
-            for (field_def, val) in struct_def.fields.iter().zip(values) {
-                fields.push((field_def.name.clone(), val));
+            if values.is_empty() && !struct_def.fields.is_empty() {
+                for field_def in &struct_def.fields {
+                    fields.push((
+                        field_def.name.clone(),
+                        Value::default_for_type(&field_def.field_type),
+                    ));
+                }
+            } else {
+                for (field_def, val) in struct_def.fields.iter().zip(values) {
+                    fields.push((field_def.name.clone(), val));
+                }
             }
             let canonical_name =
                 match self.canonical_type(&crate::ast::Type::Custom(callee.to_string())) {
@@ -33,8 +42,17 @@ impl Interpreter {
         }
         if let Some(class_def) = self.classes.get(callee).cloned() {
             let mut fields = Vec::new();
-            for (field_def, val) in class_def.fields.iter().zip(values) {
-                fields.push((field_def.name.clone(), val));
+            if values.is_empty() && !class_def.fields.is_empty() {
+                for field_def in &class_def.fields {
+                    fields.push((
+                        field_def.name.clone(),
+                        Value::default_for_type(&field_def.field_type),
+                    ));
+                }
+            } else {
+                for (field_def, val) in class_def.fields.iter().zip(values) {
+                    fields.push((field_def.name.clone(), val));
+                }
             }
             let canonical_name =
                 match self.canonical_type(&crate::ast::Type::Custom(callee.to_string())) {
@@ -53,8 +71,17 @@ impl Interpreter {
             let m = mod_rc.borrow();
             if let Some(struct_def) = m.structs.get(callee).cloned() {
                 let mut fields = Vec::new();
-                for (field_def, val) in struct_def.fields.iter().zip(values) {
-                    fields.push((field_def.name.clone(), val));
+                if values.is_empty() && !struct_def.fields.is_empty() {
+                    for field_def in &struct_def.fields {
+                        fields.push((
+                            field_def.name.clone(),
+                            Value::default_for_type(&field_def.field_type),
+                        ));
+                    }
+                } else {
+                    for (field_def, val) in struct_def.fields.iter().zip(values) {
+                        fields.push((field_def.name.clone(), val));
+                    }
                 }
                 return Ok(Value::Struct {
                     name: callee.to_string(),
@@ -63,8 +90,17 @@ impl Interpreter {
             }
             if let Some(class_def) = m.classes.get(callee).cloned() {
                 let mut fields = Vec::new();
-                for (field_def, val) in class_def.fields.iter().zip(values) {
-                    fields.push((field_def.name.clone(), val));
+                if values.is_empty() && !class_def.fields.is_empty() {
+                    for field_def in &class_def.fields {
+                        fields.push((
+                            field_def.name.clone(),
+                            Value::default_for_type(&field_def.field_type),
+                        ));
+                    }
+                } else {
+                    for (field_def, val) in class_def.fields.iter().zip(values) {
+                        fields.push((field_def.name.clone(), val));
+                    }
                 }
                 let instance = super::value::ClassInstance {
                     name: callee.to_string(),

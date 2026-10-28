@@ -87,6 +87,10 @@ pub fn load_module_source(
         return Ok((module_specifier.to_string(), source));
     }
 
+    if let Some(source) = crate::stdlib::get_stdlib_module(module_specifier) {
+        return Ok((module_specifier.to_string(), source.to_string()));
+    }
+
     if let Some(path) = resolve_module_path(module_specifier, base_dir) {
         let key = path.to_string_lossy().to_string();
         let source = fs::read_to_string(&path).map_err(|err| {

@@ -68,14 +68,18 @@ impl Analyzer {
     ) -> Result<Type, Diagnostic> {
         if let Some(signature) = self.functions.get(callee).cloned() {
             if signature.parameters.len() != arguments.len() {
-                return Err(error_expr(
-                    expression,
-                    format!(
-                        "function '{callee}' expects {} arguments, found {}",
-                        signature.parameters.len(),
-                        arguments.len()
-                    ),
-                ));
+                let is_type_constructor =
+                    self.classes.contains_key(callee) || self.structs.contains_key(callee);
+                if !(arguments.is_empty() && is_type_constructor) {
+                    return Err(error_expr(
+                        expression,
+                        format!(
+                            "function '{callee}' expects {} arguments, found {}",
+                            signature.parameters.len(),
+                            arguments.len()
+                        ),
+                    ));
+                }
             }
             for (argument, expected) in arguments.iter().zip(&signature.parameters) {
                 let actual = self.expression_type_as(argument, expected)?;

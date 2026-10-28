@@ -26,6 +26,18 @@ pub enum Value {
 }
 
 impl Value {
+    pub fn default_for_type(ty: &Type) -> Self {
+        match ty {
+            Type::Int => Self::Int(0),
+            Type::Float => Self::Float(0.0),
+            Type::Bool => Self::Bool(false),
+            Type::String => Self::String(String::new()),
+            Type::Array(_) => Self::Array(Vec::new()),
+            Type::Map { .. } => Self::Map(Vec::new()),
+            _ => Self::Void,
+        }
+    }
+
     pub fn value_type(&self) -> Type {
         match self {
             Self::Int(_) => Type::Int,

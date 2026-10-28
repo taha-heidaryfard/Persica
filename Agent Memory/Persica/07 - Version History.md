@@ -4,7 +4,20 @@
 
 ---
 
-### v0.10.0 (نسخه جاری - Current)
+### v0.11.0 (نسخه جاری - Current)
+- اضافه شدن **کتابخانه استاندارد خود‌میزبان و پیش‌درآمد (Persica Prelude & Self-hosted Stdlib)**:
+  - پیاده‌سازی ۱۰۰٪ کدهای کتابخانه با خود زبان پرسیکا (Dogfooding) در `src/stdlib/`.
+  - قرارگیری توکار و بدون وابستگی خارجی در باینری نهایی با ماکروی `include_str!`.
+  - **پیش‌درآمد عمومی (Auto-Prelude):** همیشه در دسترس در تمام اسکریپت‌ها بدون نیاز به `import`.
+  - ساختارهای داده کلاسیک: `class Stack`, `class Queue`, `class Set`, `class StringBuilder`.
+  - مدل‌های پایه: `struct Pair`, `struct Result` (با توابع کمکی `ok`, `err`), `struct Option` (با توابع `some`, `none`).
+  - الگوریتم‌های پرکاربرد: `zip`, `chunks`, `flatten`, `binary_search`.
+  - پشتیبانی از سازنده پیش‌فرض ۰ آرگومانی (`Stack()`, `Queue()`, `Set()`) با مقداردهی اولیه پیش‌فرض فیلدها.
+  - ماژول‌های استاندارد اختصاصی: `std.collections`, `std.algorithms`, `std.strings`, `std.math`.
+  - پشتیبانی کامل از سایه‌اندازی (Shadowing): امکان بازتعریف و جایگزینی نمادهای Prelude توسط کاربر.
+  - ایجاد ۱۲ تست جامع در `tests/version_11.rs` و نمونه کد در `examples/stdlib_and_prelude_11.persi`.
+
+### v0.10.0
 - اضافه شدن سیستم **ماژولار و ایمپورت کامل به سبک پایتون (Python-style Modules & Imports)**:
   - کلمات کلیدی جدید: `import`, `from`, `as`.
   - بدون نیاز به کوتیشن (`""`) در مسیر ماژول‌ها و بدون نیاز به نوشتن پسوند `.persi`.

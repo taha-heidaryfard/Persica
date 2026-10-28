@@ -7,6 +7,7 @@ pub mod parser;
 pub mod runtime;
 pub mod semantic;
 pub mod source;
+pub mod stdlib;
 
 pub use module::{clear_virtual_modules, register_virtual_module};
 

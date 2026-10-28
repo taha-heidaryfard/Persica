@@ -1,0 +1,63 @@
+// Persica v0.11.0: Self-hosted Standard Library & Prelude Gallery
+
+print("=== 1. Core Prelude: Stack ===");
+Stack s = Stack();
+s.push("Task 1");
+s.push("Task 2");
+s.push("Task 3");
+print("Stack size:", s.size());
+print("Popped item:", s.pop());
+print("Current peek:", s.peek());
+
+print("\n=== 2. Core Prelude: Queue ===");
+Queue q = Queue();
+q.enqueue("Customer A");
+q.enqueue("Customer B");
+print("Queue dequeue:", q.dequeue());
+print("Next customer:", q.peek());
+
+print("\n=== 3. Core Prelude: Set (Unique Collection) ===");
+Set set = Set();
+set.add("Tehran");
+set.add("Shiraz");
+set.add("Tehran"); // Duplicate will not increase size
+print("Set size:", set.size());
+print("Contains Tehran:", set.contains("Tehran"));
+print("Contains Isfahan:", set.contains("Isfahan"));
+
+print("\n=== 4. Core Prelude: StringBuilder ===");
+StringBuilder sb = StringBuilder();
+sb.append_str("Persica ");
+sb.append_str("v0.11.0 ");
+sb.append_str("Self-hosted!");
+print("Built string:", sb.to_str());
+print("String length:", sb.length());
+
+print("\n=== 5. Core Prelude: Result & Option ===");
+Result success = ok(100);
+Result failure = err("Network timeout");
+print("Success ok:", success.ok, "Value:", success.value);
+print("Failure ok:", failure.ok, "Error:", failure.error);
+
+Option opt = some("Persica User");
+print("Option has value:", opt.has_value, "Val:", opt.value);
+
+print("\n=== 6. Core Prelude: Algorithms ===");
+any[][] paired = zip([1, 2, 3], ["One", "Two", "Three"]);
+print("Zipped pairs:", paired);
+
+any[][] chunked = chunks([10, 20, 30, 40, 50], 2);
+print("Chunks of 2:", chunked);
+
+int[] numbers = [10, 20, 30, 40, 50, 60, 70];
+print("Binary search for 40: Index", binary_search(numbers, 40));
+
+print("\n=== 7. Standard Modules: std.strings & std.math ===");
+from std.strings import repeat_str, center, truncate;
+from std.math import lerp, distance_2d;
+
+print("Repeat:", repeat_str("*", 10));
+print("Center:", center("MENU", 14, "="));
+print("Truncate:", truncate("A very long Persian story", 12, "..."));
+print("Lerp(0, 100, 0.75):", lerp(0.0, 100.0, 0.75));
+print("Distance (0,0) to (3,4):", distance_2d(0.0, 0.0, 3.0, 4.0));

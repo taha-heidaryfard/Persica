@@ -7,11 +7,12 @@ use crate::{
     ast::{Program, StmtKind, Type},
     diagnostic::{Diagnostic, Phase},
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use symbol::{ClassInfo, FunctionSignature, ModuleSymbol, StructInfo, VariableSymbol, error};
 
 pub fn validate(program: &Program) -> Result<(), Diagnostic> {
     let mut analyzer = Analyzer::new();
+    analyzer.load_prelude()?;
     analyzer.validate(program)
 }
 
@@ -23,6 +24,7 @@ struct Analyzer {
     modules: HashMap<String, ModuleSymbol>,
     loaded_module_exports: HashMap<String, ModuleSymbol>,
     type_aliases: HashMap<String, String>,
+    declared_names: HashSet<String>,
     loading_stack: Vec<String>,
     current_class: Option<String>,
     loop_depth: usize,
@@ -39,11 +41,22 @@ impl Analyzer {
             modules: HashMap::new(),
             loaded_module_exports: HashMap::new(),
             type_aliases: HashMap::new(),
+            declared_names: HashSet::new(),
             loading_stack: Vec::new(),
             current_class: None,
             loop_depth: 0,
             current_return: None,
         }
+    }
+
+    pub fn load_prelude(&mut self) -> Result<(), Diagnostic> {
+        let prelude = crate::stdlib::get_prelude_program();
+        self.collect_definitions(prelude)?;
+        for statement in prelude {
+            self.statement(statement)?;
+        }
+        self.declared_names.clear();
+        Ok(())
     }
 
     pub(super) fn canonical_type(&self, ty: &Type) -> Type {
@@ -84,15 +97,13 @@ impl Analyzer {
                             format!("'{name}' is a reserved built-in function"),
                         ));
                     }
-                    if self.structs.contains_key(name)
-                        || self.classes.contains_key(name)
-                        || self.functions.contains_key(name)
-                    {
+                    if self.declared_names.contains(name) {
                         return Err(error(
                             statement,
                             format!("type '{name}' is already defined"),
                         ));
                     }
+                    self.declared_names.insert(name.clone());
                     let mut field_names = HashMap::new();
                     let mut field_list = Vec::new();
                     for field in fields {
@@ -135,15 +146,13 @@ impl Analyzer {
                             format!("'{name}' is a reserved built-in function"),
                         ));
                     }
-                    if self.structs.contains_key(name)
-                        || self.classes.contains_key(name)
-                        || self.functions.contains_key(name)
-                    {
+                    if self.declared_names.contains(name) {
                         return Err(error(
                             statement,
                             format!("type '{name}' is already defined"),
                         ));
                     }
+                    self.declared_names.insert(name.clone());
                     let mut field_names = HashMap::new();
                     let mut field_list = Vec::new();
                     for field in fields {
@@ -217,15 +226,13 @@ impl Analyzer {
                             format!("'{name}' is a reserved built-in function"),
                         ));
                     }
-                    if self.functions.contains_key(name)
-                        || self.structs.contains_key(name)
-                        || self.classes.contains_key(name)
-                    {
+                    if self.declared_names.contains(name) {
                         return Err(error(
                             statement,
                             format!("function '{name}' is already defined"),
                         ));
                     }
+                    self.declared_names.insert(name.clone());
                     self.functions.insert(
                         name.clone(),
                         FunctionSignature {
