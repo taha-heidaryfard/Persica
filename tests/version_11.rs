@@ -256,3 +256,31 @@ print(p.x + p.y + p.z);
     let output = run_ok(program);
     assert_eq!(output, vec!["6"]);
 }
+
+#[test]
+fn test_auto_stdlib_functions_work_without_any_import() {
+    let program = r#"
+// Testing functions directly without any import statement:
+print(linear_search(["alpha", "beta", "gamma"], "beta"));
+print(fill(3, 7));
+print(repeat_str("Ha", 3));
+print(center("TEST", 8, "*"));
+print(truncate("LongStoryShort", 7, ".."));
+print(lerp(10.0, 30.0, 0.5));
+print(distance_2d(0.0, 0.0, 6.0, 8.0));
+"#;
+
+    let output = run_ok(program);
+    assert_eq!(
+        output,
+        vec![
+            "1",
+            "[7, 7, 7]",
+            "HaHaHa",
+            "**TEST**",
+            "LongS..",
+            "20.0",
+            "10.0"
+        ]
+    );
+}
