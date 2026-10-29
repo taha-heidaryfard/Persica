@@ -1,0 +1,169 @@
+// Persica Standard Library: Collections
+// Self-hosted in 100% pure Persica
+
+struct Pair {
+    any first;
+    any second;
+}
+
+struct Result {
+    bool ok;
+    any value;
+    string error;
+}
+
+struct Option {
+    bool has_value;
+    any value;
+}
+
+def Result ok(any value) {
+    return Result(true, value, "");
+}
+
+def Result err(string message) {
+    return Result(false, false, message);
+}
+
+def Option some(any value) {
+    return Option(true, value);
+}
+
+def Option none() {
+    return Option(false, false);
+}
+
+class Stack {
+    any[] items;
+
+    def void push(any item) {
+        this.items = append(this.items, item);
+    }
+
+    def any pop() {
+        if len(this.items) == 0 {
+            return false;
+        }
+        int last_idx = len(this.items) - 1;
+        any item = this.items[last_idx];
+        this.items = slice(this.items, 0, last_idx);
+        return item;
+    }
+
+    def any peek() {
+        if len(this.items) == 0 {
+            return false;
+        }
+        return this.items[len(this.items) - 1];
+    }
+
+    def bool is_empty() {
+        return len(this.items) == 0;
+    }
+
+    def int size() {
+        return len(this.items);
+    }
+
+    def void clear() {
+        this.items = [];
+    }
+
+    def any[] to_array() {
+        return this.items;
+    }
+}
+
+class Queue {
+    any[] items;
+
+    def void enqueue(any item) {
+        this.items = append(this.items, item);
+    }
+
+    def any dequeue() {
+        if len(this.items) == 0 {
+            return false;
+        }
+        any item = this.items[0];
+        this.items = slice(this.items, 1, len(this.items));
+        return item;
+    }
+
+    def any peek() {
+        if len(this.items) == 0 {
+            return false;
+        }
+        return this.items[0];
+    }
+
+    def bool is_empty() {
+        return len(this.items) == 0;
+    }
+
+    def int size() {
+        return len(this.items);
+    }
+
+    def void clear() {
+        this.items = [];
+    }
+
+    def any[] to_array() {
+        return this.items;
+    }
+}
+
+class Set {
+    dict data;
+
+    def void add(any item) {
+        dict d = this.data;
+        d[item] = true;
+        this.data = d;
+    }
+
+    def bool contains(any item) {
+        return contains_key(this.data, item);
+    }
+
+    def void remove(any item) {
+        this.data = remove_key(this.data, item);
+    }
+
+    def int size() {
+        return len(this.data);
+    }
+
+    def any[] to_array() {
+        return keys(this.data);
+    }
+
+    def void clear() {
+        this.data = {};
+    }
+}
+
+class StringBuilder {
+    string[] parts;
+
+    def void append_str(string text) {
+        this.parts = append(this.parts, text);
+    }
+
+    def void append_line(string text) {
+        this.parts = append(this.parts, text + "\n");
+    }
+
+    def string to_str() {
+        return join("", this.parts);
+    }
+
+    def int length() {
+        return len(this.to_str());
+    }
+
+    def void clear() {
+        this.parts = [];
+    }
+}

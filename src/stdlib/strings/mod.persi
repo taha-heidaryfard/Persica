@@ -1,0 +1,39 @@
+// Persica Standard Library: Strings
+// Self-hosted in 100% pure Persica
+
+def string repeat_str(string s, int count) {
+    string result = "";
+    for (int i = 0; i < count; i++) {
+        result = result + s;
+    }
+    return result;
+}
+
+def string center(string text, int width, string pad_char) {
+    int total_pad = width - len(text);
+    if total_pad <= 0 {
+        return text;
+    }
+    int left_pad = total_pad / 2;
+    int right_pad = total_pad - left_pad;
+    return pad_left(text, len(text) + left_pad, pad_char) + repeat_str(pad_char, right_pad);
+}
+
+def string truncate(string text, int max_len, string suffix) {
+    if len(text) <= max_len {
+        return text;
+    }
+    int keep = max_len - len(suffix);
+    if keep <= 0 {
+        return suffix;
+    }
+    return slice(text, 0, keep) + suffix;
+}
+
+def string reverse_str(string s) {
+    string res = "";
+    for (int i = len(s) - 1; i >= 0; i--) {
+        res = res + slice(s, i, i + 1);
+    }
+    return res;
+}

@@ -284,3 +284,124 @@ print(distance_2d(0.0, 0.0, 6.0, 8.0));
         ]
     );
 }
+
+#[test]
+fn test_strings_folder_module_import() {
+    let program = r#"
+from strings import repeat_str, center, truncate;
+
+print(repeat_str("xyz", 2));
+print(center("Persica", 13, "="));
+print(truncate("Persica Programming Language", 10, ".."));
+"#;
+
+    let output = run_ok(program);
+    assert_eq!(output, vec!["xyzxyz", "===Persica===", "Persica .."]);
+}
+
+#[test]
+fn test_nested_strings_ali_subfolder_import() {
+    let program = r#"
+from strings.ali import greet_ali, shout;
+
+print(greet_ali("Navid"));
+print(shout("Awesomeness"));
+"#;
+
+    let output = run_ok(program);
+    assert_eq!(
+        output,
+        vec!["Salam Navid az strings.ali!", "Awesomeness!!!"]
+    );
+}
+
+#[test]
+fn test_collections_folder_module_import() {
+    let program = r#"
+from collections import Stack, Queue, Set;
+
+Stack s = Stack();
+s.push(42);
+print(s.pop());
+
+Queue q = Queue();
+q.enqueue("hello");
+print(q.dequeue());
+
+Set set = Set();
+set.add("persi");
+print(set.contains("persi"));
+"#;
+
+    let output = run_ok(program);
+    assert_eq!(output, vec!["42", "hello", "true"]);
+}
+
+#[test]
+fn test_disk_based_nested_folders_and_subpackages() {
+    let temp_dir = std::env::temp_dir().join(format!("persica_nested_pkg_{}", std::process::id()));
+    let ali_dir = temp_dir.join("strings").join("ali");
+    std::fs::create_dir_all(&ali_dir).expect("create nested directory strings/ali");
+
+    std::fs::write(
+        ali_dir.join("mod.persi"),
+        r#"
+def string custom_ali_calc(int x) {
+    return "Custom Ali Calc: " + to_string(x * 10);
+}
+"#,
+    )
+    .expect("write mod.persi");
+
+    let main_code = r#"
+from strings.ali import custom_ali_calc;
+print(custom_ali_calc(7));
+"#;
+
+    let output = persica::run_with_base_dir(main_code, Some(&temp_dir))
+        .expect("nested folder import with base_dir");
+    let _ = std::fs::remove_dir_all(&temp_dir);
+
+    assert_eq!(output, vec!["Custom Ali Calc: 70"]);
+}
+
+#[test]
+fn test_disk_based_relative_nested_import_chain() {
+    let temp_dir = std::env::temp_dir().join(format!("persica_rel_chain_{}", std::process::id()));
+    let pkg_dir = temp_dir.join("pkg");
+    let nested_dir = pkg_dir.join("nested");
+    std::fs::create_dir_all(&nested_dir).expect("create pkg/nested");
+
+    std::fs::write(
+        nested_dir.join("leaf.persi"),
+        r#"
+def string get_value() {
+    return "Value from nested leaf!";
+}
+"#,
+    )
+    .expect("write leaf.persi");
+
+    std::fs::write(
+        pkg_dir.join("sub.persi"),
+        r#"
+from nested.leaf import get_value;
+
+def string forward() {
+    return "Forwarded: " + get_value();
+}
+"#,
+    )
+    .expect("write sub.persi");
+
+    let main_code = r#"
+from pkg.sub import forward;
+print(forward());
+"#;
+
+    let output = persica::run_with_base_dir(main_code, Some(&temp_dir))
+        .expect("relative nested chain import succeeds");
+    let _ = std::fs::remove_dir_all(&temp_dir);
+
+    assert_eq!(output, vec!["Forwarded: Value from nested leaf!"]);
+}

@@ -1,0 +1,10 @@
+// Persica Standard Library: strings.ali
+// Nested subpackage under strings folder
+
+def string greet_ali(string name) {
+    return "Salam " + name + " az strings.ali!";
+}
+
+def string shout(string s) {
+    return s + "!!!";
+}

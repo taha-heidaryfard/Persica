@@ -60,19 +60,63 @@
 
 ---
 
-## ۲. ماژول‌های استاندارد (`std.*`)
+## ۲. ماژول‌های استاندارد و ساختار سلسله‌مراتبی پوشه‌ها (`std.*`, `strings.*`)
 
-علاوه بر Prelude خودکار، می‌توانید از ماژول‌های تخصصی استاندارد با سینتکس ایمپورت پایتونی استفاده کنید:
+کتابخانه استاندارد پرسیان ساختار درختی و سلسله‌مراتبی فیزیکی دارد:
+
+```text
+src/stdlib/
+├── prelude.persi          # تعاریف خودکار لود شونده
+├── std/                   # پوشه بسته std
+│   ├── mod.persi
+│   ├── collections.persi
+│   ├── algorithms.persi
+│   ├── strings.persi
+│   └── math.persi
+├── strings/               # پوشه ماژول strings و زیرپوشه‌ها
+│   ├── mod.persi
+│   └── ali/
+│       └── mod.persi      # زیرپوشه و زیربسته strings.ali
+├── collections/
+│   └── mod.persi
+├── algorithms/
+│   └── mod.persi
+└── math/
+    └── mod.persi
+```
+
+### الف) ایمپورت ماژول‌های استاندارد
+می‌توانید مستقیماً از پوشه `std` یا از نام اختصاصی پکیج‌ها استفاده کنید:
 
 ```persica
+// ایمپورت از طریق پکیج std
+from std.strings import repeat_str, center, truncate;
 from std.collections import Stack, Queue, Set, StringBuilder;
 from std.algorithms import binary_search, fill, zip, chunks;
-from std.strings import repeat_str, center, truncate;
-from std.math import lerp, distance_2d, deg_to_rad, rad_to_deg;
+from std.math import lerp, distance_2d;
 
-print(center("MENU", 14, "=")); // =====MENU=====
-print(lerp(0.0, 100.0, 0.5));   // 50.0
+// یا مستقیماً از پوشه اختصاصی ماژول
+from strings import repeat_str, center, truncate;
+from collections import Stack, Queue;
 ```
+
+### ب) پکیج‌ها و زیرپوشه‌های تو در تو (Nested Subpackages)
+اگر پکیجی دارای پوشه یا زیرپوشه باشد (مانند `strings.ali` که در پوشه `strings/ali/` قرار دارد)، ایمپورت سلسله‌مراتبی با دات ساپورت می‌شود:
+
+```persica
+from strings.ali import greet_ali, shout;
+
+print(greet_ali("Persica")); // Salam Persica az strings.ali!
+print(shout("Speed"));       // Speed!!!
+```
+
+### ج) ایمپورت فایل‌ها و پوشه‌های دلخواه روی دیسک
+سامانه ماژولار پرسیان مسیر دات را دقیقاً به ساختار فولدری روی دیسک نگاشت می‌کند:
+- `from my_pkg.sub.tool import my_func;` به ترتیب زیر را در پوشه فایل جاری و پوشه ریشه پروژه بررسی می‌کند:
+  1. `my_pkg/sub/tool.persi`
+  2. `my_pkg/sub/tool/mod.persi`
+  3. `my_pkg/sub/tool/index.persi`
+- فایل‌های فراخوانی‌شده تو در تو، ایمپورت‌های بعدی را بر اساس دایرکتوری نسبی خودشان حل‌وفصل (Resolve) می‌کنند.
 
 ---
 

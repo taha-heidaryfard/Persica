@@ -1,5 +1,5 @@
 use persica::{
-    compile,
+    compile_with_base_dir,
     diagnostic::{Diagnostic, Phase},
     runtime::Interpreter,
 };
@@ -66,8 +66,15 @@ fn run_cli() -> Result<(), (Diagnostic, String, String)> {
         })?
     };
 
-    let compilation =
-        compile(&source).map_err(|error| (error, file_name.clone(), source.clone()))?;
+    let file_path = std::path::Path::new(&file_name);
+    let base_dir = if file_path.is_file() {
+        file_path.parent().map(|p| p.to_path_buf())
+    } else {
+        None
+    };
+
+    let compilation = compile_with_base_dir(&source, base_dir.as_deref())
+        .map_err(|error| (error, file_name.clone(), source.clone()))?;
     if options.show_tokens {
         println!("===== TOKENS =====");
         for token in &compilation.tokens {
@@ -84,6 +91,7 @@ fn run_cli() -> Result<(), (Diagnostic, String, String)> {
     }
 
     let output = Interpreter::with_stdio()
+        .with_base_dir(base_dir)
         .interpret_text(&compilation.program)
         .map_err(|error| (error, file_name.clone(), source.clone()))?;
     if !output.is_empty() {

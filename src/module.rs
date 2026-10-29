@@ -66,6 +66,9 @@ pub fn resolve_module_path(module_specifier: &str, base_dir: Option<&Path>) -> O
             }
         }
         if candidate.is_file() {
+            if let Ok(abs) = std::env::current_dir() {
+                return Some(abs.join(&candidate));
+            }
             return Some(candidate);
         }
         if let Ok(cwd) = std::env::current_dir() {
@@ -82,17 +85,14 @@ pub fn load_module_source(
     module_specifier: &str,
     base_dir: Option<&Path>,
     span: Span,
-) -> Result<(String, String), Diagnostic> {
+) -> Result<(String, String, Option<PathBuf>), Diagnostic> {
     if let Some(source) = get_virtual_module(module_specifier) {
-        return Ok((module_specifier.to_string(), source));
-    }
-
-    if let Some(source) = crate::stdlib::get_stdlib_module(module_specifier) {
-        return Ok((module_specifier.to_string(), source.to_string()));
+        return Ok((module_specifier.to_string(), source, None));
     }
 
     if let Some(path) = resolve_module_path(module_specifier, base_dir) {
         let key = path.to_string_lossy().to_string();
+        let file_dir = path.parent().map(|p| p.to_path_buf());
         let source = fs::read_to_string(&path).map_err(|err| {
             Diagnostic::new(
                 Phase::Semantic,
@@ -100,7 +100,11 @@ pub fn load_module_source(
                 span,
             )
         })?;
-        return Ok((key, source));
+        return Ok((key, source, file_dir));
+    }
+
+    if let Some(source) = crate::stdlib::get_stdlib_module(module_specifier) {
+        return Ok((module_specifier.to_string(), source.to_string(), None));
     }
 
     Err(Diagnostic::new(

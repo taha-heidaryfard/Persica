@@ -8,10 +8,19 @@ use crate::{
     diagnostic::{Diagnostic, Phase},
 };
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use symbol::{ClassInfo, FunctionSignature, ModuleSymbol, StructInfo, VariableSymbol, error};
 
 pub fn validate(program: &Program) -> Result<(), Diagnostic> {
+    validate_with_base_dir(program, None)
+}
+
+pub fn validate_with_base_dir(
+    program: &Program,
+    base_dir: Option<&Path>,
+) -> Result<(), Diagnostic> {
     let mut analyzer = Analyzer::new();
+    analyzer.current_file_dir = base_dir.map(Path::to_path_buf);
     analyzer.load_prelude()?;
     analyzer.validate(program)
 }
@@ -29,6 +38,7 @@ struct Analyzer {
     current_class: Option<String>,
     loop_depth: usize,
     current_return: Option<Type>,
+    current_file_dir: Option<PathBuf>,
 }
 
 impl Analyzer {
@@ -46,6 +56,7 @@ impl Analyzer {
             current_class: None,
             loop_depth: 0,
             current_return: None,
+            current_file_dir: None,
         }
     }
 
@@ -267,13 +278,18 @@ impl Analyzer {
             if let Some(sym) = self.loaded_module_exports.get(module_specifier).cloned() {
                 sym
             } else {
-                let (key, source) =
-                    crate::module::load_module_source(module_specifier, None, statement.span)?;
+                let (key, source, file_dir) = crate::module::load_module_source(
+                    module_specifier,
+                    self.current_file_dir.as_deref(),
+                    statement.span,
+                )?;
                 let module_ast = crate::module::parse_module(&source, statement.span)?;
                 self.loading_stack.push(module_specifier.to_string());
                 let mut sub_analyzer = Analyzer::new();
+                sub_analyzer.current_file_dir = file_dir.or_else(|| self.current_file_dir.clone());
                 sub_analyzer.loaded_module_exports = self.loaded_module_exports.clone();
                 sub_analyzer.loading_stack = self.loading_stack.clone();
+                sub_analyzer.load_prelude()?;
                 sub_analyzer.validate(&module_ast)?;
                 self.loading_stack.pop();
                 self.loaded_module_exports = sub_analyzer.loaded_module_exports;

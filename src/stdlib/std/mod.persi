@@ -1,0 +1,2 @@
+// Persica Standard Library: std
+pub const string VERSION = "0.11.0";

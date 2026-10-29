@@ -14,6 +14,7 @@ pub use module::{clear_virtual_modules, register_virtual_module};
 use ast::Program;
 use diagnostic::Diagnostic;
 use lexer::Token;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct Compilation {
@@ -22,13 +23,28 @@ pub struct Compilation {
 }
 
 pub fn compile(source: &str) -> Result<Compilation, Diagnostic> {
+    compile_with_base_dir(source, None)
+}
+
+pub fn compile_with_base_dir(
+    source: &str,
+    base_dir: Option<&Path>,
+) -> Result<Compilation, Diagnostic> {
     let tokens = lexer::tokenize(source)?;
     let program = parser::parse(&tokens)?;
-    semantic::validate(&program)?;
+    semantic::validate_with_base_dir(&program, base_dir)?;
     Ok(Compilation { tokens, program })
 }
 
 pub fn run(source: &str) -> Result<Vec<String>, Diagnostic> {
-    let compilation = compile(source)?;
-    runtime::Interpreter::new().interpret(&compilation.program)
+    run_with_base_dir(source, None)
+}
+
+pub fn run_with_base_dir(source: &str, base_dir: Option<&Path>) -> Result<Vec<String>, Diagnostic> {
+    let compilation = compile_with_base_dir(source, base_dir)?;
+    let mut interpreter = runtime::Interpreter::new();
+    if let Some(dir) = base_dir {
+        interpreter.set_current_file_dir(dir.to_path_buf());
+    }
+    interpreter.interpret(&compilation.program)
 }

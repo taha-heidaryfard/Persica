@@ -12,6 +12,7 @@ use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
     io::{self, Write},
+    path::PathBuf,
     rc::Rc,
 };
 use value::ClassInstance;
@@ -80,6 +81,7 @@ pub struct Interpreter {
     pub(super) input: Input,
     pub(super) stream_output: bool,
     pub(super) prelude_loaded: bool,
+    pub(super) current_file_dir: Option<PathBuf>,
 }
 
 impl Interpreter {
@@ -88,6 +90,15 @@ impl Interpreter {
             scopes: vec![HashMap::new()],
             ..Self::default()
         }
+    }
+
+    pub fn set_current_file_dir(&mut self, dir: PathBuf) {
+        self.current_file_dir = Some(dir);
+    }
+
+    pub fn with_base_dir(mut self, dir: Option<PathBuf>) -> Self {
+        self.current_file_dir = dir;
+        self
     }
 
     pub fn load_prelude(&mut self) -> Result<(), Diagnostic> {
@@ -217,11 +228,16 @@ impl Interpreter {
         let module_instance = if let Some(m) = self.loaded_modules.get(module_specifier).cloned() {
             m
         } else {
-            let (key, source) =
-                crate::module::load_module_source(module_specifier, None, statement.span)?;
+            let (key, source, file_dir) = crate::module::load_module_source(
+                module_specifier,
+                self.current_file_dir.as_deref(),
+                statement.span,
+            )?;
             let module_ast = crate::module::parse_module(&source, statement.span)?;
             let mut sub_interpreter = Interpreter::new();
+            sub_interpreter.current_file_dir = file_dir.or_else(|| self.current_file_dir.clone());
             sub_interpreter.loaded_modules = self.loaded_modules.clone();
+            sub_interpreter.load_prelude()?;
             sub_interpreter.execute_program(&module_ast)?;
             self.loaded_modules = sub_interpreter.loaded_modules;
             let mod_inst = Rc::new(RefCell::new(ModuleInstance {
