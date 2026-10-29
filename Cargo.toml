@@ -2,7 +2,7 @@
 name = "persica"
 version = "0.13.0"
 edition = "2024"
-authors = ["Taha Heidary"]
+authors = ["Mohammad Taha Heidaryfard"]
 description = "The Persica programming language interpreter"
 license = "MIT"
 

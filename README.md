@@ -4,36 +4,36 @@
 
 **A lightweight, statically-typed, and developer-friendly programming language built from scratch in Rust.**
 
-[![Version](https://img.shields.io/badge/version-0.13.0-blue.svg?style=for-the-badge)](https://github.com/taha-heidaryfard/persica/releases)
+[![Version](https://img.shields.io/badge/version-0.13.0-blue.svg?style=for-the-badge)](https://github.com/taha-heidaryfard/Persica/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![Tests Passing](https://img.shields.io/badge/tests-138%20passed-success.svg?style=for-the-badge)]()
+[![Tests Passing](https://img.shields.io/badge/tests-138%20passed-success.svg?style=for-the-badge)](https://github.com/taha-heidaryfard/Persica/actions)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20crates-orange.svg?style=for-the-badge)]()
 [![Donate](https://img.shields.io/badge/Donate-Reymit-ff5252.svg?style=for-the-badge&logo=heart)](https://reymit.ir/taxtander)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg?style=for-the-badge)]()
 
-[English](#english) • [فارسی](#persian) • [Documentation Website](https://taha-heidaryfard.github.io/persica/) • [Releases](https://github.com/taha-heidaryfard/persica/releases) • [💖 Donate / حمایت](https://reymit.ir/taxtander)
+[Documentation](https://taha-heidaryfard.github.io/Persica/) • [مستندات فارسی](https://taha-heidaryfard.github.io/Persica/#fa) • [Releases](https://github.com/taha-heidaryfard/Persica/releases) • [VS Code Extension](#-vs-code-extension) • [💖 Donate](https://reymit.ir/taxtander)
 
 ---
 
 </div>
 
-<a name="english"></a>
 ## 🌟 About Persica
 
 **Persica** combines the **ergonomics and syntactic beauty of Python** with the **safety and predictability of a statically-typed language**, powered by the raw speed and zero-dependency reliability of Rust.
 
-Every layer of the compiler pipeline—Lexer, Recursive-Descent Parser, Abstract Syntax Tree (AST), Semantic Type Checker, Tree-Walk Interpreter, and Project Manager—is crafted completely from scratch without third-party crates.
+Every layer of the compiler pipeline—Lexer, Recursive-Descent Parser, Abstract Syntax Tree (AST), Semantic Type Checker, Tree-Walk Interpreter, and Project Manager—is crafted completely from scratch without external crates.
 
 ### ✨ Key Highlights
 
 - **⚡ Zero Ceremony Execution:** Run individual scripts instantly like Python (`persica script.persi`) without project scaffolding.
-- **📁 Built-in Project System:** Configure multi-module projects with `persica.toml` (`persica new`, `persica run`, `persica test`).
+- **📁 Built-in Project System:** Configure multi-module projects with zero-dependency `persica.toml` (`persica new`, `persica run`, `persica test`).
 - **🔒 Isolated `.persi_env` Environment:** Isolated local package environment for third-party modules without duplicating heavy executable binaries.
-- **🛡️ Full Exception Handling:** Robust `try / catch / throw` syntax with call-stack unwinding and runtime error trapping (Zero Rust panics!).
+- **🛡️ Full Exception Handling:** Robust `try / catch / throw` syntax with call-stack unwinding and runtime error trapping (Zero Rust panics).
 - **🏛️ Classes & Structs:** Pure-data value structs (`struct`) and rich object-oriented classes with methods and reference semantics (`class`).
 - **📦 Python-style Modular Imports:** Clean imports without quotes (`import math as m;`, `from models import Point, *;`).
 - **📚 Self-Hosted Standard Library & Auto-Prelude:** Standard data structures (`Stack`, `Queue`, `Set`, `StringBuilder`, `Pair`, `Result`, `Option`) ready out-of-the-box.
 - **🪟 Windows Setup Installer:** Official 1-click Windows installer with automatic `PATH` configuration and `.persi` file association.
+- **💻 VS Code Extension:** Rich language extension with syntax highlighting, live error diagnostics, auto-complete, and one-click run buttons.
 
 ---
 
@@ -42,12 +42,12 @@ Every layer of the compiler pipeline—Lexer, Recursive-Descent Parser, Abstract
 ### 1. Installation
 
 #### Windows (Official Installer)
-Download the latest `Persica-0.13.0-Windows-x64-Setup.exe` from [Releases](https://github.com/taha-heidaryfard/persica/releases) and run the installer. It configures `persica` in your system `PATH` automatically.
+Download the latest `Persica-0.13.0-Windows-x64-Setup.exe` from [Releases](https://github.com/taha-heidaryfard/Persica/releases) and run the installer. It configures `persica` in your system `PATH` automatically.
 
 #### Build from Source (Cargo)
 ```bash
-git clone https://github.com/taha-heidaryfard/persica.git
-cd persica
+git clone https://github.com/taha-heidaryfard/Persica.git
+cd Persica
 cargo build --release
 ```
 The compiled binary will be located in `target/release/persica.exe`.
@@ -165,46 +165,45 @@ print("Square root of 16 is:", sqrt(16.0));
 
 ---
 
-<a name="persian"></a>
-## 🇮🇷 درباره پرسیکا (Persica)
-
-**پرسیکا** یک زبان برنامه‌نویسی مدرن، ایستا-نوع (Statically-Typed) و مستقل است که با هدف ارائه‌ی سینتکسی تمیز و خوانا (مشابه پایتون) در کنار ایمنی، سرعت بالا و عدم وابستگی به هیچ کتابخانه جانبی در زبان Rust توسعه یافته است.
-
-### امکانات برجسته:
-- **اجرای آسان تک‌فایل:** فایل‌های `.persi` را همانند پایتون بدون نیاز به ساخت پوشه یا پروژه اجرا کنید.
-- **سیستم مدیریت پروژه و محیط ایزوله:** دارای ابزارهای `persica new`, `persica run`, `persica test` همراه با کانفیگ سبک `persica.toml` و محیط محلی ایزوله ماژول‌ها بنام `.persi_env`.
-- **مدل شیء‌گرایی و ساختارهای داده:** پشتیبانی از مدل داده‌ای خالص `struct` و کلاس‌های شیء‌گرا دارای رفتار و متد `class`.
-- **سیستم استثنا و مدیریت خطا:** بلوک‌های `try / catch / throw` با خروج امن پشته و بدون کوچک‌ترین Panic در رانتایم زبان.
-- **کتابخانه استاندارد خود‌میزبان:** پیاده‌سازی ساختارهای داده پرکاربرد (`Stack`, `Queue`, `Set`, `StringBuilder`) و الگوریتم‌های استاندارد با خود زبان پرسیکا.
-- **نصاب اختصاصی ویندوز:** فایل راه‌انداز رسمی برای ویندوز ۶۴ بیتی با تنظیم خودکار متغیرهای محیطی `PATH`.
-
----
-
 ## 🛠️ CLI Reference
 
-| دستور | شرح |
+| Command | Description |
 |---|---|
-| `persica <file.persi>` | اجرای مستقیم اسکریپت تکی |
-| `persica new <name>` | ساخت پروژه جدید با اسکلت‌بندی کامل |
-| `persica init` | مقداردهی اولیه پوشه فعلی به عنوان پروژه |
-| `persica run` | اجرای فایل اصلی پروژه طبق `persica.toml` |
-| `persica test` | اجرای خودکار تمام تست‌های درون پوشه `tests/` |
-| `persica check <file>` | تحلیل معنایی و نوع‌سنجی استاتیک بدون اجرا |
-| `persica --eval "code"` | ارزیابی و اجرای قطعه کد به‌صورت درون‌خطی |
+| `persica <file.persi>` | Run a standalone single script |
+| `persica new <name>` | Scaffold a new project with `persica.toml` and `.persi_env` |
+| `persica init` | Initialize current directory as a Persica project |
+| `persica run` | Run the main project entry specified in `persica.toml` |
+| `persica test` | Discover and run all unit tests in `tests/` directory |
+| `persica check <file>` | Validate syntax and static types without executing |
+| `persica --eval "code"` | Evaluate a snippet of Persica code inline |
 
 ---
 
-## 💖 Sponsorship & Support / حمایت مالی
+## 🧩 VS Code Extension
 
-Persica is a passion project built completely from scratch. If you find Persica interesting, useful, or want to support its ongoing research and development, you can support Taxtander via **Reymit**:
+Persica includes an official VS Code extension (`persica-0.13.0.vsix`):
+- **Full Syntax Highlighting:** Keywords, types, strings, comments, built-ins, and prelude symbols.
+- **IntelliSense & Hover Documentation:** Hover over built-in functions and types for descriptions and parameters.
+- **Auto-Diagnostics on Save:** Real-time error underlining powered by `persica --check`.
+- **Code Snippets:** Instant templates for functions, loops, structs, classes, and `try/catch`.
+- **Run Buttons:** 1-click execution right from the editor title bar.
 
-اگر زبان پرسیکا برای شما کاربردی بوده یا به توسعه زبان‌های برنامه‌نویسی علاقه‌مندید، با حمایت مالی خود به ادامه‌ی این مسیر کمک کنید:
+To install:
+```bash
+code --install-extension persica-0.13.0.vsix
+```
+
+---
+
+## 💖 Sponsorship & Support
+
+Persica is an independent open-source project. If you find Persica interesting, useful, or want to support its ongoing research and development, you can sponsor the project via **Reymit**:
 
 <div align="center">
 
-[![Donate via Reymit](https://img.shields.io/badge/حمایت_مالی-Reymit-ff5252.svg?style=for-the-badge&logo=heart)](https://reymit.ir/taxtander)
+[![Donate via Reymit](https://img.shields.io/badge/Donate-Reymit-ff5252.svg?style=for-the-badge&logo=heart)](https://reymit.ir/taxtander)
 
-👉 **[رِیمیت | درگاه حمایت مالی از Taxtander](https://reymit.ir/taxtander)**
+👉 **[Reymit | Taxtander Sponsorship Portal](https://reymit.ir/taxtander)**
 
 </div>
 
@@ -213,4 +212,4 @@ Persica is a passion project built completely from scratch. If you find Persica 
 ## 📄 License
 
 This project is licensed under the terms of the [MIT License](LICENSE).  
-Copyright (c) 2026 **Taha Heidary**.
+Copyright (c) 2026 **Mohammad Taha Heidaryfard (Taxtander)**.
