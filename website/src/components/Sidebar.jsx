@@ -4,10 +4,10 @@ import { useRouter } from 'next/router';
 import { 
   Download, Play, FolderTree, FileCode2, GitFork, 
   Layers, Box, ShieldAlert, Cpu, Terminal, 
-  Code2, Languages, Sparkles, BookMarked
+  Code2, Languages, Sparkles
 } from 'lucide-react';
 
-export const NAVIGATION_SECTIONS = [
+export const NAVIGATION_EN = [
   {
     title: 'Getting Started',
     items: [
@@ -44,18 +44,60 @@ export const NAVIGATION_SECTIONS = [
     items: [
       { title: 'CLI Commands Reference', href: '/docs/cli', icon: Terminal },
       { title: 'VS Code Extension', href: '/docs/vscode', icon: Sparkles, badge: 'Official' },
-      { title: 'راهنمای فارسی (Persian Docs)', href: '/fa', icon: Languages, highlight: true },
+    ]
+  }
+];
+
+export const NAVIGATION_FA = [
+  {
+    title: 'شروع کار',
+    items: [
+      { title: 'راهنمای نصب و راه‌اندازی', href: '/fa/docs/installation', icon: Download },
+      { title: 'اولین برنامه و شروع سریع', href: '/fa/docs/quickstart', icon: Play },
+    ]
+  },
+  {
+    title: 'معماری پروژه',
+    items: [
+      { title: 'پیکربندی persica.toml و .persi_env', href: '/fa/docs/project-system', icon: FolderTree, badge: 'نسخه جدید ۰.۱۳' },
+    ]
+  },
+  {
+    title: 'هسته زبان',
+    items: [
+      { title: 'متغیرها و انواع داده', href: '/fa/docs/syntax-basics', icon: FileCode2 },
+      { title: 'شروط و حلقه‌ها', href: '/fa/docs/control-flow', icon: GitFork },
+      { title: 'توابع و بازگشت', href: '/fa/docs/functions', icon: Code2 },
+      { title: 'آرایه‌ها، مپ‌ها و دیکشنری', href: '/fa/docs/collections', icon: Layers },
+    ]
+  },
+  {
+    title: 'شیء‌گرایی و پایداری',
+    items: [
+      { title: 'استراکت‌ها و کلاس‌ها (OOP)', href: '/fa/docs/oop', icon: Box },
+      { title: 'مدیریت خطا (try / catch / throw)', href: '/fa/docs/exceptions', icon: ShieldAlert },
+      { title: 'سیستم پکیج و ماژول‌ها', href: '/fa/docs/modules', icon: GitFork },
+      { title: 'کتابخانه استاندارد و پیش‌درآمد', href: '/fa/docs/stdlib', icon: Cpu },
+    ]
+  },
+  {
+    title: 'ابزارها و اکوسیستم',
+    items: [
+      { title: 'مرجع دستورات خط فرمان CLI', href: '/fa/docs/cli', icon: Terminal },
+      { title: 'افزونه رسمی VS Code', href: '/fa/docs/vscode', icon: Sparkles, badge: 'رسمی' },
     ]
   }
 ];
 
 export default function Sidebar({ className = '' }) {
   const router = useRouter();
+  const isFa = router.pathname.startsWith('/fa');
+  const sections = isFa ? NAVIGATION_FA : NAVIGATION_EN;
 
   return (
-    <aside className={`w-72 shrink-0 py-6 pr-4 overflow-y-auto ${className}`}>
+    <aside className={`w-72 shrink-0 py-6 ${isFa ? 'pl-4' : 'pr-4'} overflow-y-auto ${className}`}>
       <div className="space-y-7">
-        {NAVIGATION_SECTIONS.map((section, idx) => (
+        {sections.map((section, idx) => (
           <div key={idx} className="space-y-2">
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3">
               {section.title}
@@ -72,8 +114,6 @@ export default function Sidebar({ className = '' }) {
                     className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group ${
                       isActive
                         ? 'bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30'
-                        : item.highlight
-                        ? 'text-teal-400 hover:text-teal-300 hover:bg-slate-900 font-vazir'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
                     }`}
                   >
