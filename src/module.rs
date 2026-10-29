@@ -13,6 +13,22 @@ use std::{
 
 // Global in-memory virtual modules repository (useful for testing and embeds)
 static VIRTUAL_MODULES: RwLock<Option<HashMap<String, String>>> = RwLock::new(None);
+static PROJECT_SEARCH_PATHS: RwLock<Vec<PathBuf>> = RwLock::new(Vec::new());
+
+pub fn set_project_search_paths(paths: Vec<PathBuf>) {
+    let mut lock = PROJECT_SEARCH_PATHS.write().unwrap();
+    *lock = paths;
+}
+
+pub fn get_project_search_paths() -> Vec<PathBuf> {
+    let lock = PROJECT_SEARCH_PATHS.read().unwrap();
+    lock.clone()
+}
+
+pub fn clear_project_search_paths() {
+    let mut lock = PROJECT_SEARCH_PATHS.write().unwrap();
+    lock.clear();
+}
 
 pub fn register_virtual_module(name: impl Into<String>, source: impl Into<String>) {
     let mut lock = VIRTUAL_MODULES.write().unwrap();
@@ -61,6 +77,12 @@ pub fn resolve_module_path(module_specifier: &str, base_dir: Option<&Path>) -> O
     for candidate in candidates {
         if let Some(base) = base_dir {
             let full = base.join(&candidate);
+            if full.is_file() {
+                return Some(full);
+            }
+        }
+        for search_path in get_project_search_paths() {
+            let full = search_path.join(&candidate);
             if full.is_file() {
                 return Some(full);
             }

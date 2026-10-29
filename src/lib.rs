@@ -4,12 +4,17 @@ pub mod diagnostic;
 pub mod lexer;
 pub mod module;
 pub mod parser;
+pub mod project;
 pub mod runtime;
 pub mod semantic;
 pub mod source;
 pub mod stdlib;
 
-pub use module::{clear_virtual_modules, register_virtual_module};
+pub use module::{
+    clear_project_search_paths, clear_virtual_modules, register_virtual_module,
+    set_project_search_paths,
+};
+pub use project::ProjectConfig;
 
 use ast::Program;
 use diagnostic::Diagnostic;

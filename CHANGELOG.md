@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.13.0
+
+مستند کامل نسخه: [docs/project/releases/v0.13.0.md](docs/project/releases/v0.13.0.md)
+
+- Added official project management and configuration system with zero-dependency `persica.toml`.
+- Added zero-ceremony standalone single-file execution (`persica script.persi`).
+- Added isolated local package environment `.persi_env` (without exe binary duplication).
+- Added explicit execution invocation: `persica persica.toml src/main.persi` and `persica persica.toml`.
+- Added tiered module import resolution: file-relative -> `source` dir -> `.persi_env` -> `std`.
+- Added CLI commands: `persica new <name>`, `persica init`, `persica run`, `persica test`.
+- Added ancestor directory search for `persica.toml` when invoking scripts directly.
+- Added comprehensive test suite `tests/version_13.rs` (5 new tests, 138 total tests passing).
+
+## 0.12.0
+
+- Added `try`, `catch`, `throw` exception handling with call stack unwinding and syntax variants.
+- Handled runtime division by zero, out of bounds array access, and missing dict keys cleanly.
+
+## 0.11.0
+
+- Added self-hosted Persica Prelude and modular standard library packages (`std.collections`, `std.algorithms`, etc.).
+
+## 0.10.0
+
+- Added Python-style imports (`import`, `from ... import`, `as`, wildcard `*`).
+
+## 0.9.0
+
+- Added pure-data `struct` and object-oriented `class` models with methods.
+
+## 0.8.0
+
+- Added typed dictionaries and maps (`map<K, V>`, `dict`, `{}`).
+
 ## 0.7.0
 
 مستند کامل نسخه: [docs/project/releases/v0.7.0.md](docs/project/releases/v0.7.0.md)
