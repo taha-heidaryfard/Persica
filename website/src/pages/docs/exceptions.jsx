@@ -148,18 +148,18 @@ Trapped bounds error: runtime error: array index out of bounds: index 99 but len
       <CodeBlock
         language="persica"
         filename="stack_unwinding.persi"
-        code={`void level3() {
+        code={`def void level3() {
     print("In level 3: about to throw");
     throw "Fatal failure in level 3!";
     print("Unreachable");
 }
 
-void level2() {
+def void level2() {
     print("In level 2");
     level3();
 }
 
-void level1() {
+def void level1() {
     print("In level 1");
     level2();
 }

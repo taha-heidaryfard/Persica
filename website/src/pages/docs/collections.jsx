@@ -88,8 +88,8 @@ Row 0 updated: [1, 2, 99]`}
             </tr>
             <tr>
               <td className="p-3 font-mono text-emerald-400">append(arr, item)</td>
-              <td className="p-3 font-mono">void</td>
-              <td className="p-3">Adds element to the end of array in-place.</td>
+              <td className="p-3 font-mono">array</td>
+              <td className="p-3">Returns a new array with element appended.</td>
             </tr>
             <tr>
               <td className="p-3 font-mono text-emerald-400">sort(arr)</td>

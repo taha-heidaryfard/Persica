@@ -98,12 +98,12 @@ print("پنج سال بعد سن شما برابر خواهد بود با:", age
           language="persica"
           filename="fibonacci.persi"
           code={`// تابعی برای محاسبه n عدد اول دنباله فیبوناچی
-int[] generate_fibonacci(int count) {
+def int[] generate_fibonacci(int count) {
     int[] fib = [0, 1];
     
     for (int i = 2; i < count; i++) {
         int next_val = fib[i - 1] + fib[i - 2];
-        append(fib, next_val);
+        fib = append(fib, next_val);
     }
     
     return fib;

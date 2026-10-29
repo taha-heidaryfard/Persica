@@ -44,18 +44,18 @@ struct Transaction {
 // Reference class (state & behavior)
 class BankAccount {
     string owner;
-    int balance = 0;
+    int balance;
 
-    void deposit(int amt) {
+    def void deposit(int amt) {
         this.balance += amt;
     }
 
-    int get_balance() {
+    def int get_balance() {
         return this.balance;
     }
 }
 
-BankAccount acc = BankAccount();
+BankAccount acc = BankAccount("Mohammad Taha", 0);
 acc.deposit(1000);
 print("Account balance:", acc.get_balance());`,
     output: `Account balance: 1000`
@@ -87,7 +87,7 @@ s.push("Persica");
 s.push("Compiler");
 
 print("Top element:", s.pop());
-print("Current stack size:", s.len());`,
+print("Current stack size:", s.size());`,
     output: `Top element: Compiler
 Current stack size: 2`
   },

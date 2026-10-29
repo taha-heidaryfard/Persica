@@ -90,12 +90,12 @@ In 5 years, you will be 30 years old.`}
         language="persica"
         filename="fibonacci.persi"
         code={`// Function to generate the first n Fibonacci numbers
-int[] generate_fibonacci(int count) {
+def int[] generate_fibonacci(int count) {
     int[] fib = [0, 1];
     
     for (int i = 2; i < count; i++) {
         int next_val = fib[i - 1] + fib[i - 2];
-        append(fib, next_val);
+        fib = append(fib, next_val);
     }
     
     return fib;

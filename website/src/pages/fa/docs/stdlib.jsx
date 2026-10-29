@@ -17,7 +17,7 @@ export default function StdlibPageFa() {
     { title: 'ساختارهای Set و StringBuilder', id: 'set-sb', level: 2 },
     { title: 'کانتینرهای Result و Option', id: 'result-option', level: 2 },
     { title: 'ماژول ریاضی استاندارد (std.math)', id: 'math-module', level: 2 },
-    { title: 'ماژول کالکشن‌ها (std.collections)', id: 'collections-module', level: 2 },
+    { title: 'ماژول الگوریتم‌های استاندارد (std.algorithms)', id: 'algorithms-module', level: 2 },
   ];
 
   return (
@@ -51,7 +51,7 @@ stack.push("Layer 3");
 
 print("Popped item:", stack.pop());
 print("Top item (peek):", stack.peek());
-print("Stack size:", stack.len());
+print("Stack size:", stack.size());
 
 // ۲. صف (Queue: ورود اول، خروج اول FIFO)
 Queue queue = Queue();
@@ -59,7 +59,7 @@ queue.enqueue("Customer 1");
 queue.enqueue("Customer 2");
 
 print("Served first:", queue.dequeue());
-print("Remaining in queue:", queue.len());`}
+print("Remaining in queue:", queue.size());`}
           output={`Popped item: Layer 3
 Top item (peek): Layer 2
 Stack size: 2
@@ -81,7 +81,7 @@ unique_ids.add("USR-101");
 unique_ids.add("USR-102");
 unique_ids.add("USR-101"); // مقدار تکراری اضافه نمی‌شود
 
-print("Set size:", unique_ids.len());
+print("Set size:", unique_ids.size());
 print("Contains USR-102?", unique_ids.contains("USR-102"));
 
 // ۲. سازنده رشته کارآمد (StringBuilder)
@@ -91,7 +91,7 @@ sb.append_str("WHERE status = 'active' ");
 sb.append_line("ORDER BY id DESC;");
 
 print("Constructed SQL:");
-print(sb.to_string());`}
+print(sb.to_str());`}
           output={`Set size: 2
 Contains USR-102? true
 Constructed SQL:
@@ -111,7 +111,7 @@ SELECT * FROM users WHERE status = 'active' ORDER BY id DESC;`}
           language="persica"
           filename="result_option.persi"
           code={`// تقسیم امن با ساختار Result
-Result safe_divide(int a, int b) {
+def Result safe_divide(int a, int b) {
     if b == 0 {
         return err("امکان تقسیم بر صفر وجود ندارد");
     }
@@ -119,7 +119,7 @@ Result safe_divide(int a, int b) {
 }
 
 Result res = safe_divide(100, 5);
-if res.is_ok {
+if res.ok {
     print("Computation succeeded:", res.value);
 } else {
     print("Computation failed:", res.error);
@@ -135,27 +135,25 @@ if res.is_ok {
         <CodeBlock
           language="persica"
           filename="math_demo.persi"
-          code={`from std.math import sqrt, pow, gcd, is_prime;
+          code={`from std.math import lerp, deg_to_rad, distance_2d;
 
-print("Square root of 81.0:", sqrt(81.0));
-print("2 raised to power 8:", pow(2.0, 8.0));
-print("Greatest common divisor of 54 and 24:", gcd(54, 24));
-print("Is 97 prime?", is_prime(97));`}
-          output={`Square root of 81.0: 9
-2 raised to power 8: 256
-Greatest common divisor of 54 and 24: 6
-Is 97 prime? true`}
+print("Lerp 0.0 to 10.0 at 0.5:", lerp(0.0, 10.0, 0.5));
+print("90 deg to rad:", deg_to_rad(90.0));
+print("Distance (0,0) to (3,4):", distance_2d(0.0, 0.0, 3.0, 4.0));`}
+          output={`Lerp 0.0 to 10.0 at 0.5: 5.0
+90 deg to rad: 1.5707963267948966
+Distance (0,0) to (3,4): 5.0`}
         />
       </div>
 
-      <h2 id="collections-module" className="text-2xl font-bold text-white border-b border-slate-800 pb-3 mt-12">
-        ماژول کالکشن‌ها (`std.collections`)
+      <h2 id="algorithms-module" className="text-2xl font-bold text-white border-b border-slate-800 pb-3 mt-12">
+        ماژول الگوریتم‌های استاندارد (`std.algorithms`)
       </h2>
       <div dir="ltr" className="text-left">
         <CodeBlock
           language="persica"
           filename="algorithms_demo.persi"
-          code={`from std.collections import zip, chunks, binary_search;
+          code={`from std.algorithms import zip, chunks, binary_search;
 
 int[] numbers = [10, 20, 30, 40, 50, 60];
 

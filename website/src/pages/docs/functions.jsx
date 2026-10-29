@@ -30,12 +30,12 @@ export default function FunctionsPage() {
         language="persica"
         filename="functions.persi"
         code={`// Typed function accepting two integers and returning an integer
-int multiply(int a, int b) {
+def int multiply(int a, int b) {
     return a * b;
 }
 
 // Float function computing circle area
-float circle_area(float radius) {
+def float circle_area(float radius) {
     final float PI = 3.14159265;
     return PI * radius * radius;
 }
@@ -56,7 +56,7 @@ Area of radius 4.0 = 50.2654824`}
       <CodeBlock
         language="persica"
         filename="void_functions.persi"
-        code={`void log_warning(string message, bool is_critical) {
+        code={`def void log_warning(string message, bool is_critical) {
     if !is_critical {
         print("[INFO]", message);
         return; // early return
@@ -81,7 +81,7 @@ log_warning("Database connection timeout", true);`}
         language="persica"
         filename="return_safety.persi"
         code={`// Valid: All execution paths return an integer
-int absolute_value(int n) {
+def int absolute_value(int n) {
     if n < 0 {
         return -n;
     } else {
@@ -90,7 +90,7 @@ int absolute_value(int n) {
 }
 
 // Valid: 'throw' satisfies the return requirement
-string get_status(int code) {
+def string get_status(int code) {
     if code == 200 {
         return "OK";
     }
@@ -109,7 +109,7 @@ string get_status(int code) {
         language="persica"
         filename="recursion.persi"
         code={`// Recursive Factorial
-int factorial(int n) {
+def int factorial(int n) {
     if n <= 1 {
         return 1;
     }
@@ -117,12 +117,12 @@ int factorial(int n) {
 }
 
 // Mutual recursion: is_even calls is_odd, which is defined below
-bool is_even(int n) {
+def bool is_even(int n) {
     if n == 0 { return true; }
     return is_odd(n - 1);
 }
 
-bool is_odd(int n) {
+def bool is_odd(int n) {
     if n == 0 { return false; }
     return is_even(n - 1);
 }

@@ -92,8 +92,8 @@ Row 0 updated: [1, 2, 99]`}
             </tr>
             <tr>
               <td className="p-3 font-mono text-emerald-400" dir="ltr">append(arr, item)</td>
-              <td className="p-3 font-mono" dir="ltr">void</td>
-              <td className="p-3">عنصر جدید را به انتهای آرایه اضافه می‌کند.</td>
+              <td className="p-3 font-mono" dir="ltr">array</td>
+              <td className="p-3">یک آرایه جدید شامل عنصر اضافه‌شده به انتها برمی‌گرداند.</td>
             </tr>
             <tr>
               <td className="p-3 font-mono text-emerald-400" dir="ltr">sort(arr)</td>

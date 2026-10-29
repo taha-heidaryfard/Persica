@@ -89,25 +89,25 @@ p2.x: 99`}
         language="persica"
         filename="class_demo.persi"
         code={`class StopWatch {
-    int elapsed_seconds = 0;
-    bool is_running = false;
+    int elapsed_seconds;
+    bool is_running;
 
-    void start() {
+    def void start() {
         this.is_running = true;
     }
 
-    void tick(int seconds) {
+    def void tick(int seconds) {
         if this.is_running {
             this.elapsed_seconds += seconds;
         }
     }
 
-    int get_elapsed() {
+    def int get_elapsed() {
         return this.elapsed_seconds;
     }
 }
 
-StopWatch timer = StopWatch();
+StopWatch timer = StopWatch(0, false);
 timer.start();
 timer.tick(15);
 timer.tick(30);
@@ -127,20 +127,19 @@ print("Elapsed time:", timer.get_elapsed(), "seconds");`}
         filename="bank_account.persi"
         code={`class Account {
     string owner;
-    int balance = 0;
+    int balance;
 
-    void deposit(int amount) {
+    def void deposit(int amount) {
         this.balance += amount;
         this.log_audit("Deposited " + to_string(amount));
     }
 
-    void log_audit(string event) {
+    def void log_audit(string event) {
         print("[AUDIT]", this.owner, "-", event, "| Balance:", this.balance);
     }
 }
 
-Account acc = Account();
-acc.owner = "Mohammad Taha";
+Account acc = Account("Mohammad Taha", 0);
 acc.deposit(500);
 acc.deposit(250);`}
         output={`[AUDIT] Mohammad Taha - Deposited 500 | Balance: 500
@@ -158,10 +157,10 @@ acc.deposit(250);`}
         language="persica"
         filename="references.persi"
         code={`class SharedState {
-    int counter = 0;
+    int counter;
 }
 
-SharedState ref1 = SharedState();
+SharedState ref1 = SharedState(0);
 SharedState ref2 = ref1; // Shared reference
 
 ref2.counter = 42;

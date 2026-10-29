@@ -44,18 +44,18 @@ struct Transaction {
 // کلاس ارجاعی (نگهداری وضعیت و رفتار روی Heap)
 class BankAccount {
     string owner;
-    int balance = 0;
+    int balance;
 
-    void deposit(int amt) {
+    def void deposit(int amt) {
         this.balance += amt;
     }
 
-    int get_balance() {
+    def int get_balance() {
         return this.balance;
     }
 }
 
-BankAccount acc = BankAccount();
+BankAccount acc = BankAccount("محمد طاها", 0);
 acc.deposit(1000);
 print("موجودی حساب:", acc.get_balance());`,
     output: `موجودی حساب: 1000`
@@ -87,7 +87,7 @@ s.push("Persica");
 s.push("Compiler");
 
 print("عنصر بالای پشته:", s.pop());
-print("اندازه فعلی پشته:", s.len());`,
+print("اندازه فعلی پشته:", s.size());`,
     output: `عنصر بالای پشته: Compiler
 اندازه فعلی پشته: 2`
   },
