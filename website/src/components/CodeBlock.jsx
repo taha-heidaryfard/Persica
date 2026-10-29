@@ -1,6 +1,101 @@
 import React, { useState } from 'react';
 import { Check, Copy, Terminal } from 'lucide-react';
 
+const KEYWORDS = new Set([
+  'def', 'class', 'struct', 'this', 'final', 'fn', 'return',
+  'if', 'else', 'while', 'for', 'in', 'break', 'continue',
+  'try', 'catch', 'throw', 'import', 'from', 'as'
+]);
+
+const TYPES = new Set([
+  'int', 'float', 'string', 'bool', 'void', 'any', 'map', 'dict',
+  'Stack', 'Queue', 'Set', 'StringBuilder', 'Pair', 'Result', 'Option'
+]);
+
+const BUILTINS = new Set([
+  'print', 'input', 'read_line', 'len', 'range', 'append',
+  'to_string', 'to_int', 'to_float', 'abs', 'sqrt', 'pow',
+  'min', 'max', 'clamp', 'sort', 'reverse', 'slice', 'sum',
+  'keys', 'values', 'contains_key'
+]);
+
+// Tokenizer regex that cleanly segments Persica code into tokens without HTML tag corruption
+const TOKEN_REGEX = /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([a-zA-Z_][a-zA-Z0-9_]*)|([^a-zA-Z0-9_"\s/]+|\s+|\/)/g;
+
+function highlightPersica(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, lineIdx) => {
+    // Entire line is a comment
+    if (line.trim().startsWith('//')) {
+      return (
+        <div key={lineIdx} className="token-cmt">
+          {line || ' '}
+        </div>
+      );
+    }
+
+    const tokens = [];
+    let match;
+    let tokenKey = 0;
+    TOKEN_REGEX.lastIndex = 0;
+
+    while ((match = TOKEN_REGEX.exec(line)) !== null) {
+      const [full, cmt, str, num, word, other] = match;
+
+      if (cmt !== undefined) {
+        tokens.push(
+          <span key={tokenKey++} className="token-cmt">
+            {cmt}
+          </span>
+        );
+      } else if (str !== undefined) {
+        tokens.push(
+          <span key={tokenKey++} className="token-str">
+            {str}
+          </span>
+        );
+      } else if (num !== undefined) {
+        tokens.push(
+          <span key={tokenKey++} className="token-num">
+            {num}
+          </span>
+        );
+      } else if (word !== undefined) {
+        if (KEYWORDS.has(word)) {
+          tokens.push(
+            <span key={tokenKey++} className="token-kw">
+              {word}
+            </span>
+          );
+        } else if (TYPES.has(word)) {
+          tokens.push(
+            <span key={tokenKey++} className="token-typ">
+              {word}
+            </span>
+          );
+        } else if (BUILTINS.has(word)) {
+          tokens.push(
+            <span key={tokenKey++} className="token-fn">
+              {word}
+            </span>
+          );
+        } else {
+          tokens.push(<span key={tokenKey++}>{word}</span>);
+        }
+      } else if (other !== undefined) {
+        tokens.push(<span key={tokenKey++}>{other}</span>);
+      }
+    }
+
+    return (
+      <div key={lineIdx}>
+        {tokens.length > 0 ? tokens : ' '}
+      </div>
+    );
+  });
+}
+
 export default function CodeBlock({ code, language = 'persica', filename = '', output = '' }) {
   const [copied, setCopied] = useState(false);
 
@@ -8,52 +103,6 @@ export default function CodeBlock({ code, language = 'persica', filename = '', o
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Basic syntax highlighter helper for Persica
-  const highlightPersica = (text) => {
-    const lines = text.split('\n');
-    return lines.map((line, idx) => {
-      // Escape HTML entities
-      let formatted = line
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-      // Comments
-      if (formatted.trim().startsWith('//')) {
-        return <div key={idx} className="token-cmt" dangerouslySetInnerHTML={{ __html: formatted }} />;
-      }
-
-      // Strings
-      formatted = formatted.replace(/"([^"]*)"/g, '<span class="token-str">"$1"</span>');
-
-      // Keywords
-      const keywords = ['def', 'class', 'struct', 'this', 'final', 'fn', 'return', 'if', 'else', 'while', 'for', 'in', 'break', 'continue', 'try', 'catch', 'throw', 'import', 'from', 'as'];
-      keywords.forEach(kw => {
-        const regex = new RegExp(`\\b(${kw})\\b`, 'g');
-        formatted = formatted.replace(regex, '<span class="token-kw">$1</span>');
-      });
-
-      // Types
-      const types = ['int', 'float', 'string', 'bool', 'void', 'any', 'map', 'dict', 'Stack', 'Queue', 'Set', 'StringBuilder', 'Pair', 'Result', 'Option'];
-      types.forEach(typ => {
-        const regex = new RegExp(`\\b(${typ})\\b`, 'g');
-        formatted = formatted.replace(regex, '<span class="token-typ">$1</span>');
-      });
-
-      // Builtin functions
-      const fns = ['print', 'input', 'read_line', 'len', 'range', 'append', 'to_string', 'to_int', 'to_float', 'abs', 'sqrt', 'pow', 'min', 'max', 'clamp', 'sort', 'reverse', 'slice', 'sum', 'keys', 'values', 'contains_key'];
-      fns.forEach(fn => {
-        const regex = new RegExp(`\\b(${fn})\\b(?=\\()`, 'g');
-        formatted = formatted.replace(regex, '<span class="token-fn">$1</span>');
-      });
-
-      // Numbers
-      formatted = formatted.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="token-num">$1</span>');
-
-      return <div key={idx} dangerouslySetInnerHTML={{ __html: formatted }} />;
-    });
   };
 
   return (
