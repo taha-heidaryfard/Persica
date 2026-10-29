@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Heart, Search, Github, BookOpen, Terminal, Code2, Menu, X, Globe } from 'lucide-react';
+import { Heart, Search, Github, BookOpen, Terminal, Code2, Menu, X, Globe, User } from 'lucide-react';
 
 export default function Header({ onOpenSearch, onToggleMobileNav, isMobileNavOpen }) {
   const router = useRouter();
@@ -112,6 +112,18 @@ export default function Header({ onOpenSearch, onToggleMobileNav, isMobileNavOpe
             <Heart className="h-3.5 w-3.5 fill-white animate-pulse" />
             <span className="hidden sm:inline">{isFa ? "حمایت (Reymit)" : "Sponsor (Reymit)"}</span>
             <span className="sm:hidden">حمایت</span>
+          </a>
+
+          {/* Creator Portfolio */}
+          <a
+            href="https://taha-heidaryfard.ir/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/80 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-emerald-400 hover:border-emerald-500/40 transition"
+            title={isFa ? "محمد طاها حیدری‌فرد | وب‌سایت شخصی و رزومه" : "Mohammad Taha Heidaryfard | Portfolio"}
+          >
+            <User className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden xl:inline">{isFa ? "وب‌سایت سازنده" : "Portfolio"}</span>
           </a>
 
           {/* GitHub Repo */}

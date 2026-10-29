@@ -11,7 +11,7 @@
 [![Donate](https://img.shields.io/badge/Donate-Reymit-ff5252.svg?style=for-the-badge&logo=heart)](https://reymit.ir/taxtander)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg?style=for-the-badge)]()
 
-[Documentation](https://taha-heidaryfard.github.io/Persica/) • [مستندات فارسی](https://taha-heidaryfard.github.io/Persica/#fa) • [Releases](https://github.com/taha-heidaryfard/Persica/releases) • [VS Code Extension](#-vs-code-extension) • [💖 Donate](https://reymit.ir/taxtander)
+[Documentation](https://taha-heidaryfard.github.io/Persica/) • [مستندات فارسی](https://taha-heidaryfard.github.io/Persica/fa/) • [Author Website](https://taha-heidaryfard.ir/) • [Releases](https://github.com/taha-heidaryfard/Persica/releases) • [VS Code Extension](#-vs-code-extension) • [💖 Donate](https://reymit.ir/taxtander)
 
 ---
 
@@ -206,6 +206,15 @@ Persica is an independent open-source project. If you find Persica interesting, 
 👉 **[Reymit | Taxtander Sponsorship Portal](https://reymit.ir/taxtander)**
 
 </div>
+
+---
+
+## 👨‍💻 Author
+
+Created and maintained by **Mohammad Taha Heidaryfard (Taxtander)**:
+- 🌐 Personal Website: [taha-heidaryfard.ir (محمد طاها حیدری‌فرد | توسعه‌دهنده وب و نرم‌افزار)](https://taha-heidaryfard.ir/)
+- 💖 Sponsor on Reymit: [reymit.ir/taxtander](https://reymit.ir/taxtander)
+- 🐙 GitHub: [@taha-heidaryfard](https://github.com/taha-heidaryfard)
 
 ---
 

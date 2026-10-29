@@ -176,10 +176,27 @@ export default function DocsLayout({ children, meta = {}, toc = [] }) {
           <footer className="mt-16 border-t border-slate-800/80 pt-8 pb-12 text-center text-xs text-slate-400">
             <p>
               {isFa ? "طراحی و توسعه داده شده توسط " : "Designed & developed by "}
-              <strong className="text-slate-300 font-semibold">محمد طاها حیدری‌فرد (Mohammad Taha Heidaryfard - Taxtander)</strong>
+              <a
+                href="https://taha-heidaryfard.ir/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-200 font-semibold hover:text-emerald-400 underline decoration-emerald-500/50 underline-offset-4 transition"
+                title={isFa ? "محمد طاها حیدری‌فرد | توسعه‌دهنده وب و نرم‌افزار" : "Mohammad Taha Heidaryfard | Web & Software Developer"}
+              >
+                محمد طاها حیدری‌فرد (Mohammad Taha Heidaryfard - Taxtander)
+              </a>
               {isFa ? " • تحت مجوز MIT" : " • Under the MIT License"}
             </p>
-            <p className="mt-1 text-[11px] text-slate-400">
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              <a
+                href="https://taha-heidaryfard.ir/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-400 hover:text-emerald-300 font-medium transition"
+              >
+                {isFa ? "🌐 وب‌سایت شخصی: taha-heidaryfard.ir" : "🌐 Personal Website: taha-heidaryfard.ir"}
+              </a>
+              {" • "}
               {isFa ? "کامپایلر و کتابخانه استاندارد پرسیکا نسخه ۰.۱۳ • پیاده‌سازی ۱۰۰٪ از صفر با Rust" : "Persica Compiler & Standard Library v0.13.0 • Built completely from scratch in Rust"}
             </p>
           </footer>

@@ -333,12 +333,31 @@ export default function Home() {
       <footer className="border-t border-slate-900 py-12 text-center text-xs text-slate-400">
         <div className="mx-auto max-w-7xl px-4 space-y-2">
           <p>
-            Designed & developed by <strong className="text-slate-300">Mohammad Taha Heidaryfard (Taxtander)</strong> • Under MIT License
+            Designed & developed by{' '}
+            <a
+              href="https://taha-heidaryfard.ir/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-200 font-bold hover:text-emerald-400 underline decoration-emerald-500/50 underline-offset-4 transition"
+              title="Mohammad Taha Heidaryfard | Web & Software Developer"
+            >
+              Mohammad Taha Heidaryfard (Taxtander)
+            </a>{' '}
+            • Under MIT License
           </p>
           <p className="text-[11px] text-slate-400">
             🤖 This website was built with AI • این وب‌سایت با کمک هوش مصنوعی ساخته شده است
           </p>
-          <div className="flex items-center justify-center gap-4 pt-3 text-slate-400">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-3 text-slate-400 text-xs">
+            <a
+              href="https://taha-heidaryfard.ir/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 font-medium transition"
+            >
+              🌐 taha-heidaryfard.ir
+            </a>
+            <span>•</span>
             <a href="https://github.com/taha-heidaryfard/Persica" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">GitHub</a>
             <span>•</span>
             <Link href="/docs/installation" className="hover:text-white transition">Documentation</Link>

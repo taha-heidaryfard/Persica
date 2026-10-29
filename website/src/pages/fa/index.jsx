@@ -443,9 +443,26 @@ export default function PersianHomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-3">
           <p>
             طراحی و پیاده‌سازی شده با عشق توسط{' '}
-            <strong className="text-slate-200 font-bold">محمد طاها حیدری‌فرد (Mohammad Taha Heidaryfard - Taxtander)</strong>
+            <a
+              href="https://taha-heidaryfard.ir/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-200 font-bold hover:text-emerald-400 underline decoration-emerald-500/50 underline-offset-4 transition"
+              title="محمد طاها حیدری‌فرد | توسعه‌دهنده وب و نرم‌افزار"
+            >
+              محمد طاها حیدری‌فرد (Mohammad Taha Heidaryfard - Taxtander)
+            </a>
           </p>
           <p className="text-[11px] text-slate-400">
+            <a
+              href="https://taha-heidaryfard.ir/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 font-medium transition"
+            >
+              🌐 وب‌سایت شخصی: taha-heidaryfard.ir (توسعه‌دهنده وب و نرم‌افزار)
+            </a>
+            {' • '}
             کامپایلر و رانتایم پرسیکا نسخه ۰.۱۳.۰ • صد در صد مستقل با راست • تحت لایسنس MIT
           </p>
           <div className="pt-2 text-[10px] text-slate-400 flex items-center justify-center gap-2">
