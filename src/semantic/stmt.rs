@@ -263,6 +263,41 @@ impl Analyzer {
                     self.expect_expression(end, &Type::String)?;
                 }
             }
+            StmtKind::Throw(expression) => {
+                let ty = self.expression_type(expression)?;
+                if ty == Type::Void {
+                    return Err(error_expr(expression, "cannot throw a void value"));
+                }
+            }
+            StmtKind::TryCatch {
+                try_body,
+                catch_var_type,
+                catch_var_name,
+                catch_body,
+            } => {
+                self.push_scope();
+                let try_res = try_body.iter().try_for_each(|item| self.statement(item));
+                self.pop_scope();
+                try_res?;
+
+                let var_type = if let Some(explicit_type) = catch_var_type {
+                    self.canonical_type(explicit_type)
+                } else {
+                    Type::Any
+                };
+
+                self.push_scope();
+                self.scopes.last_mut().unwrap().insert(
+                    catch_var_name.clone(),
+                    VariableSymbol {
+                        variable_type: var_type,
+                        is_final: false,
+                    },
+                );
+                let catch_res = catch_body.iter().try_for_each(|item| self.statement(item));
+                self.pop_scope();
+                catch_res?;
+            }
             StmtKind::Expression(expression) => {
                 self.expression_type(expression)?;
             }
@@ -277,13 +312,18 @@ pub(super) fn statements_return(statements: &[Stmt]) -> bool {
 
 pub(super) fn statement_returns(statement: &Stmt) -> bool {
     match &statement.kind {
-        StmtKind::Return(_) => true,
+        StmtKind::Return(_) | StmtKind::Throw(_) => true,
         StmtKind::Block(items) => statements_return(items),
         StmtKind::If {
             then_branch,
             else_branch: Some(else_branch),
             ..
         } => statement_returns(then_branch) && statement_returns(else_branch),
+        StmtKind::TryCatch {
+            try_body,
+            catch_body,
+            ..
+        } => statements_return(try_body) && statements_return(catch_body),
         _ => false,
     }
 }

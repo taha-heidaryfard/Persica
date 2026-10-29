@@ -1,0 +1,91 @@
+// Persica v0.12.0: Exception Handling (try / catch / throw)
+// Demonstrating robust error management without crashes
+
+print("=== 1. Basic Exception Handling ===");
+try {
+    print("Attempting dangerous task...");
+    throw "Permission Denied!";
+    print("This line will never be printed.");
+} catch (error) {
+    print("Caught error:", error);
+}
+
+print("");
+print("=== 2. Catching Builtin Runtime Errors ===");
+// Catching division by zero
+try {
+    int zero = 0;
+    int bad = 100 / zero;
+} catch (e) {
+    print("Safely caught runtime division by zero:", e);
+}
+
+// Catching array index out of bounds
+try {
+    int[] list = [1, 2, 3];
+    print(list[99]);
+} catch (e) {
+    print("Safely caught array out of bounds:", e);
+}
+
+// Catching dictionary missing key
+try {
+    dict config = {"host": "localhost", "port": 8080};
+    print(config["database"]);
+} catch (e) {
+    print("Safely caught dictionary missing key:", e);
+}
+
+print("");
+print("=== 3. Throwing Structured Data & Objects ===");
+try {
+    throw {
+        "status": 404,
+        "resource": "/api/users/99",
+        "message": "User not found"
+    };
+} catch (err_dict) {
+    print("Error code:", err_dict["status"]);
+    print("Resource:", err_dict["resource"]);
+    print("Message:", err_dict["message"]);
+}
+
+print("");
+print("=== 4. Deep Call-Stack Unwinding ===");
+def void step3() {
+    print("Step 3 reached - throwing custom business error");
+    throw "Fatal validation error in pipeline";
+}
+
+def void step2() {
+    step3();
+}
+
+def void step1() {
+    step2();
+}
+
+try {
+    step1();
+} catch (string message) {
+    print("Main caught error after unwinding 3 stack frames:", message);
+}
+
+print("");
+print("=== 5. Function Return with Throw ===");
+def int divide_safe(int a, int b) {
+    if (b == 0) {
+        throw "Cannot divide by zero in divide_safe";
+    }
+    return a / b;
+}
+
+try {
+    print("10 / 2 =", divide_safe(10, 2));
+    print("10 / 0 =", divide_safe(10, 0));
+} catch (err) {
+    print("Caught divide_safe error:", err);
+}
+
+print("");
+print("Program completed successfully without crashing!");

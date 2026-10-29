@@ -414,6 +414,12 @@ impl<'a> Parser<'a> {
         if self.matches(&[TokenKind::Print]) {
             return self.print_statement(self.previous().span);
         }
+        if self.matches(&[TokenKind::Try]) {
+            return self.try_statement(self.previous().span);
+        }
+        if self.matches(&[TokenKind::Throw]) {
+            return self.throw_statement(self.previous().span);
+        }
         self.expression_statement()
     }
 
@@ -426,6 +432,77 @@ impl<'a> Parser<'a> {
             .consume(TokenKind::RightBrace, "expected '}' after the block")?
             .span;
         Ok((statements, end))
+    }
+
+    fn try_statement(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
+        self.consume(TokenKind::LeftBrace, "expected '{' after 'try'")?;
+        let (try_body, _) = self.block_contents()?;
+
+        self.consume(TokenKind::Catch, "expected 'catch' after 'try' block")?;
+
+        let (catch_var_type, catch_var_name) = if self.matches(&[TokenKind::LeftParen]) {
+            let (ty, name) = if self.is_type_start() {
+                let ty = self.parse_type(false)?;
+                let name = self
+                    .consume(
+                        TokenKind::Identifier,
+                        "expected variable name after type in catch",
+                    )?
+                    .lexeme
+                    .clone();
+                (Some(ty), name)
+            } else {
+                let name = self
+                    .consume(TokenKind::Identifier, "expected variable name in catch")?
+                    .lexeme
+                    .clone();
+                (None, name)
+            };
+            self.consume(TokenKind::RightParen, "expected ')' after catch variable")?;
+            (ty, name)
+        } else if self.check(TokenKind::LeftBrace) {
+            (None, "error".to_string())
+        } else if self.is_type_start() {
+            let ty = self.parse_type(false)?;
+            let name = self
+                .consume(
+                    TokenKind::Identifier,
+                    "expected variable name after type in catch",
+                )?
+                .lexeme
+                .clone();
+            (Some(ty), name)
+        } else {
+            let name = self
+                .consume(TokenKind::Identifier, "expected variable name in catch")?
+                .lexeme
+                .clone();
+            (None, name)
+        };
+
+        self.consume(TokenKind::LeftBrace, "expected '{' before catch block body")?;
+        let (catch_body, end) = self.block_contents()?;
+
+        Ok(Stmt {
+            kind: StmtKind::TryCatch {
+                try_body,
+                catch_var_type,
+                catch_var_name,
+                catch_body,
+            },
+            span: start.merge(end),
+        })
+    }
+
+    fn throw_statement(&mut self, start: Span) -> Result<Stmt, Diagnostic> {
+        let expr = self.expression()?;
+        let end = self
+            .consume(TokenKind::Semicolon, "expected ';' after throw expression")?
+            .span;
+        Ok(Stmt {
+            kind: StmtKind::Throw(expr),
+            span: start.merge(end),
+        })
     }
 
     fn if_statement(&mut self, start: Span) -> Result<Stmt, Diagnostic> {

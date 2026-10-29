@@ -239,6 +239,13 @@ pub enum StmtKind {
         separator: Option<Expr>,
         end: Option<Expr>,
     },
+    TryCatch {
+        try_body: Vec<Stmt>,
+        catch_var_type: Option<Type>,
+        catch_var_name: String,
+        catch_body: Vec<Stmt>,
+    },
+    Throw(Expr),
     Expression(Expr),
 }
 

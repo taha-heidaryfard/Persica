@@ -211,6 +211,9 @@ impl<'a> Lexer<'a> {
             "print" => TokenKind::Print,
             "true" => TokenKind::True,
             "false" => TokenKind::False,
+            "try" => TokenKind::Try,
+            "catch" => TokenKind::Catch,
+            "throw" => TokenKind::Throw,
             _ => TokenKind::Identifier,
         };
         self.push(kind, start, line, column, None);

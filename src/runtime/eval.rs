@@ -139,6 +139,65 @@ impl Interpreter {
                 self.emit(&(content + &end))?;
                 Ok(Flow::Normal)
             }
+            StmtKind::Throw(expression) => {
+                let value = self.evaluate(expression)?;
+                self.active_exception = Some(value.clone());
+                Err(super::runtime_stmt(statement, value.to_string()))
+            }
+            StmtKind::TryCatch {
+                try_body,
+                catch_var_type,
+                catch_var_name,
+                catch_body,
+            } => {
+                let initial_depth = self.scopes.len();
+                self.scopes.push(HashMap::new());
+                let try_result = self.execute_statements(try_body);
+
+                match try_result {
+                    Ok(flow) => {
+                        self.scopes.pop();
+                        Ok(flow)
+                    }
+                    Err(diag) => {
+                        while self.scopes.len() > initial_depth {
+                            self.scopes.pop();
+                        }
+
+                        let caught_value = self
+                            .active_exception
+                            .take()
+                            .unwrap_or_else(|| Value::String(diag.message.clone()));
+
+                        let expected_type = catch_var_type
+                            .as_ref()
+                            .map(|ty| self.canonical_type(ty))
+                            .unwrap_or(Type::Any);
+
+                        let bound_value = if expected_type == Type::String
+                            && !matches!(caught_value, Value::String(_))
+                        {
+                            Value::String(caught_value.to_string())
+                        } else {
+                            caught_value
+                        };
+
+                        self.scopes.push(HashMap::new());
+                        self.scopes.last_mut().unwrap().insert(
+                            catch_var_name.clone(),
+                            Binding {
+                                variable_type: expected_type,
+                                is_final: false,
+                                value: bound_value,
+                            },
+                        );
+
+                        let catch_result = self.execute_statements(catch_body);
+                        self.scopes.pop();
+                        catch_result
+                    }
+                }
+            }
             StmtKind::Expression(expression) => {
                 self.evaluate(expression)?;
                 Ok(Flow::Normal)

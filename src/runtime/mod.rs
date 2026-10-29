@@ -82,6 +82,7 @@ pub struct Interpreter {
     pub(super) stream_output: bool,
     pub(super) prelude_loaded: bool,
     pub(super) current_file_dir: Option<PathBuf>,
+    pub(super) active_exception: Option<Value>,
 }
 
 impl Interpreter {
