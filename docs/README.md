@@ -1,48 +1,34 @@
 # مستندات Persica
 
-مستندات Persica براساس مخاطب به سه بخش مستقل تقسیم شده است. از بخشی شروع کنید که با هدف شما هماهنگ است.
+مستندات Persica براساس مخاطب به دو بخش اصلی تقسیم شده است. از بخشی شروع کنید که با هدف شما هماهنگ است:
 
 ## ۱. یادگیری خود زبان
 
 [ورود به بخش Learn](learn/README.md)
 
-برای کسی که می‌خواهد با Persica برنامه بنویسد:
+برای برنامه‌نویسانی که می‌خواهند با Persica کدنویسی کنند:
 
 - نصب و اولین برنامه
-- syntax و typeها
-- متغیر، scope و operator
-- شرط و حلقه
-- تابع و recursion
-- آرایه و built-in
-- خطاها و debugging
+- انواع داده‌ها (Types) و متغیرها
+- کنترل جریان (شرط‌ها و حلقه‌ها)
+- توابع، بازگشت و امضا
+- آرایه‌ها، مپ‌ها و دیکشنری
+- مدل شیء‌گرایی (Structs & Classes)
+- مدیریت خطاها و استثناها (try / catch)
 
 این بخش درباره‌ی رفتار زبان است و نیاز به دانش Rust ندارد.
 
-## ۲. راهنمای Agents
-
-[ورود به بخش Agents](agents/README.md)
-
-برای agentهای هوش مصنوعی و ابزارهای خودکار که repository را تغییر می‌دهند:
-
-- نقشه‌ی سریع فایل‌ها و pipeline
-- invariantهای compiler/runtime
-- playbook افزودن قابلیت یا رفع bug
-- ماتریس تست براساس نوع تغییر
-- قوانین documentation و release
-
-فایل [AGENTS.md](../AGENTS.md) در ریشه نیز entry point خودکار agentهاست.
-
-## ۳. کد و معماری پروژه
+## ۲. معماری کامپایلر و توسعه پروژه
 
 [ورود به بخش Project](project/README.md)
 
-برای توسعه‌دهنده‌ی compiler و maintainer پروژه:
+برای توسعه‌دهندگان کامپایلر و مشارکت‌کنندگان در سورس:
 
-- معماری Lexer، Parser، AST و Semantic Analyzer
-- Runtime، diagnostics و embedding API
-- CLI و قرارداد I/O
-- workflow، testing و release process
-- تاریخ نسخه‌ها و migration
+- معماری خط لوله: Lexer، Parser، AST و Semantic Analyzer
+- رانتایم، مفسر و سیستم تشخیص خطا (Diagnostics)
+- رابط کاربری خط فرمان (CLI)
+- گردش کار توسعه، تست‌ها و انتشار نسخه‌ها
+- تاریخچه تغییرات و نسخه‌ها
 
 ## منابع سطح ریشه
 
@@ -51,11 +37,10 @@
 - [ROADMAP](../ROADMAP.md)
 - [LICENSE](../LICENSE)
 
-## قانون منبع حقیقت
+## منبع حقیقت
 
 - رفتار زبان: `docs/learn/`
-- روش پیاده‌سازی: `docs/project/`
-- دستورالعمل عملیات agent: `docs/agents/`
+- روش پیاده‌سازی کامپایلر: `docs/project/`
 - رفتار اثبات‌شده: `tests/`
 - وضعیت نسخه: `Cargo.toml`
 

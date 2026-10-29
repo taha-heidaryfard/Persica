@@ -7,3 +7,11 @@ website/node_modules/
 website/.next/
 website/out/
 
+# Agent internal operational context & memory (private)
+AGENTS.md
+Agent Memory/
+docs/agents/
+.agent/
+.gemini/
+
+

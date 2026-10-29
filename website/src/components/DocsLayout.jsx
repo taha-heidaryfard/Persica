@@ -67,7 +67,6 @@ export default function DocsLayout({ children, meta = {}, toc = [] }) {
                   : "This documentation website was built with AI • این وب‌سایت با کمک هوش مصنوعی ساخته شده است"}
               </span>
             </div>
-            <span className="hidden sm:inline font-mono text-[10px] text-purple-400/80">UI/UX Pro Max</span>
           </div>
 
           {/* Breadcrumbs */}
