@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="peachGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B6B" />
+      <stop offset="50%" stop-color="#FF8E53" />
+      <stop offset="100%" stop-color="#FFA07A" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2ECC71" />
+      <stop offset="100%" stop-color="#27AE60" />
+    </linearGradient>
+  </defs>
+  <!-- Background Circle -->
+  <rect width="128" height="128" rx="28" fill="#1E1E2E" />
+  <!-- Leaf -->
+  <path d="M 64 26 C 74 16 92 20 94 32 C 96 44 82 50 68 44 Z" fill="url(#leafGrad)" />
+  <!-- Peach Body -->
+  <path d="M 64 42 C 40 38 24 58 24 82 C 24 104 46 116 64 116 C 82 116 104 104 104 82 C 104 58 88 38 64 42 Z" fill="url(#peachGrad)" />
+  <!-- Peach Crease -->
+  <path d="M 64 42 C 60 62 58 84 64 116" stroke="#D35400" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4" />
+  <!-- Letter P Accent -->
+  <text x="64" y="90" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF" text-anchor="middle" opacity="0.95">P</text>
+</svg>

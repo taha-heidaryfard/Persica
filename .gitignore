@@ -3,4 +3,7 @@
 *.iml
 *.log
 /dist/
+website/node_modules/
+website/.next/
+website/out/
 
