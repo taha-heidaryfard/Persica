@@ -128,10 +128,7 @@ impl<'a> Parser<'a> {
         operators: &[(TokenKind, BinaryOp)],
     ) -> Result<Expr, Diagnostic> {
         let mut expression = next(self)?;
-        loop {
-            let Some((_, op)) = operators.iter().find(|(kind, _)| self.check(*kind)) else {
-                break;
-            };
+        while let Some((_, op)) = operators.iter().find(|(kind, _)| self.check(*kind)) {
             self.advance();
             expression = binary(expression, *op, next(self)?);
         }
